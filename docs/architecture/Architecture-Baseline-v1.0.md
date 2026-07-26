@@ -5,7 +5,7 @@ status: Draft
 owner: Architecture
 last_updated: 2026-07-26
 product: PSM Operations Platform
-baseline_scope: WP-001 completed; WP-002 approved for implementation
+baseline_scope: WP-001 completed; WP-002 implemented
 ---
 
 # PSM Operations Platform — Architecture Baseline v1.0
@@ -24,8 +24,10 @@ This baseline represents the architecture at the following delivery point:
 
 - Repository foundation established.
 - WP-001 — Solution Skeleton completed and passed Gate 1.
-- WP-002 — Configuration & Infrastructure Foundation approved for implementation.
-- Domain entities, business tables, migrations, command queue implementation and real collectors are not yet implemented.
+- WP-002 — Core Persistence Layer implemented.
+- WP-002 Domain entities, EF Core mappings, the `InitialCreate` migration and
+  persistence tests are present. Collector implementations, inventory logic,
+  Web CRUD and command workers are not yet implemented.
 - ADR-005 — Türkiye Local Time Standard is accepted.
 - ADR-006 — Database Design Principles is planned and must be accepted before WP-003 implementation.
 
@@ -501,9 +503,11 @@ ADR-006 — Database Design Principles must define:
 
 WP-003 must not begin before ADR-006 is accepted.
 
-## 12. Configuration and infrastructure baseline
+## 12. Configuration and infrastructure direction
 
-WP-002 establishes the following direction.
+This section records future configuration and infrastructure direction. It is not
+part of WP-002 — Core Persistence Layer; the approved WP-002 implementation
+boundary is defined by `docs/tasks/WP-002-Core-Persistence-Layer.md`.
 
 ### 12.1 Configuration
 
@@ -875,7 +879,7 @@ It is not complete when:
 ## 19. Delivery roadmap baseline
 
 1. WP-001 — Solution Skeleton — Completed
-2. WP-002 — Configuration & Infrastructure Foundation — Approved for implementation
+2. WP-002 — Core Persistence Layer — Implemented
 3. ADR-006 — Database Design Principles — Planned
 4. WP-003 — Database Foundation — Planned
 5. WP-004 — Durable Command Queue — Planned
@@ -952,7 +956,7 @@ Primary repository references:
 - `docs/adr/ADR-002-SQL-Durable-Command-Queue.md`
 - `docs/adr/ADR-003-Collector-Separation-by-Security-Boundary.md`
 - `docs/tasks/WP-001-Solution-Skeleton.md`
-- `docs/tasks/WP-002-Configuration-Infrastructure-Foundation.md`
+- `docs/tasks/WP-002-Core-Persistence-Layer.md`
 - `docs/project/Principles.md`
 - `AGENTS.md`
 

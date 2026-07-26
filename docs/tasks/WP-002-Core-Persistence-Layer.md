@@ -311,6 +311,13 @@ Rules:
 ## Error handling
 
 - Persistence operations SHALL expose stable platform error codes.
+- Connectivity, timeout and database-unavailable failures SHALL use
+  `persistence.unavailable` when they can be classified safely.
+- This mapping applies to `SaveChanges` and `SaveChangesAsync`. Constructing
+  `OperationsDbContext` does not open a database connection; direct
+  `Database.OpenConnection*` calls are outside the WP-002 persistence save
+  abstraction and require caller-owned handling if introduced by a later Work
+  Package.
 - Unique-constraint violations SHALL become deterministic conflict results.
 - Concurrency conflicts SHALL be explicit.
 - Invalid JSON payloads SHALL be rejected.
@@ -327,6 +334,16 @@ The implementation SHALL log:
 - Concurrency conflicts.
 - Constraint violations with stable event identifiers.
 
+Runtime persistence logging uses stable event identifiers 2100 through 2107 for
+context creation, save start/success, concurrency, constraint, unavailable,
+append-only and unexpected-failure events. Log messages contain operation type,
+stable error code, exception type and counts only. They do not include connection
+strings, SQL text, JSON payloads or credentials.
+
+Migration start, completion and failure logging is owned by the controlled
+deployment pipeline or operator tooling because migrations do not run in
+application startup.
+
 The implementation MUST NOT log:
 
 - Credentials.
@@ -342,10 +359,14 @@ The implementation MUST NOT log:
 4. Required keys, foreign keys, constraints and indexes are present.
 5. `rowversion` is configured for `CollectorNode` and `CommandQueueItem`.
 6. `InitialCreate` migration is generated successfully.
-7. The migration creates an empty database from zero.
+7. The migration creates an empty database from zero. Controlled manual SQL
+   Server evidence is recorded in
+   [`../verification/WP-002-SQL-Server-Validation.md`](../verification/WP-002-SQL-Server-Validation.md).
 8. Migration is applied explicitly and not at application startup.
 9. Build succeeds without new warnings.
-10. Required persistence tests pass.
+10. Required persistence tests pass. Provider-specific controlled validation is
+    recorded in
+    [`../verification/WP-002-SQL-Server-Validation.md`](../verification/WP-002-SQL-Server-Validation.md).
 11. No collector logic, Web CRUD UI or command worker is introduced.
 12. No credential storage or SQL authentication is introduced.
 
@@ -369,6 +390,14 @@ Tests SHALL verify:
 
 Provider-specific behavior SHALL be tested against SQL Server and MUST NOT be considered proven by EF Core InMemory.
 
+Domain constructors reject undefined enum values before persistence. EF Core
+continues to store approved enum members as readable strings.
+
+The generic repository intentionally does not expose an unbounded `ListAsync`.
+High-volume reads for `CollectorHeartbeat`, `AuditLog` and `InventorySnapshot`
+require query-specific paginated APIs in the Work Package that introduces those
+read use cases. WP-002 does not define that future API.
+
 ## Documentation updates
 
 WP-002 implementation SHALL update:
@@ -380,14 +409,22 @@ WP-002 implementation SHALL update:
 
 ## Completion checklist
 
-- [ ] Domain entities and enums implemented
-- [ ] DbContext implemented
-- [ ] Fluent configurations implemented
-- [ ] Design-time factory implemented
-- [ ] `InitialCreate` migration generated
-- [ ] SQL Server integration tests implemented
-- [ ] Build succeeds
-- [ ] Tests succeed
-- [ ] Acceptance criteria verified
-- [ ] No out-of-scope implementation added
-- [ ] Documentation updated
+- [x] Seven Domain entities and required enums implemented without EF Core dependencies
+- [x] `OperationsDbContext` implemented
+- [x] Seven Fluent API configurations implemented
+- [x] Design-time factory implemented
+- [x] `InitialCreate` migration generated
+- [x] Controlled manual SQL Server validation completed and documented
+- [x] SQL Server schemas, tables, foreign keys, indexes, constraints and `rowversion` verified
+- [x] SQL Server `ISJSON` constraint behavior verified
+- [x] Optimistic concurrency verified
+- [x] Append-only persistence guard implemented and tested
+- [x] Persistence logging implemented and tested
+- [x] `persistence.unavailable` mapping implemented and tested
+- [x] Undefined enum validation implemented and tested
+- [x] Release build succeeds
+- [x] Automated tests succeed
+- [x] Acceptance criteria verified
+- [x] No credential storage or SQL Authentication added
+- [x] No collector implementation, Web CRUD or command worker added
+- [x] Documentation updated
