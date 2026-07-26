@@ -1,0 +1,70 @@
+---
+title: Repository Pack Manifest
+version: 1.0.0
+status: Approved
+owner: Architecture
+last_updated: 2026-07-26
+product: PSM Operations Platform
+---
+# Included files
+
+- `.editorconfig`
+- `.gitignore`
+- `AGENTS.md`
+- `CHANGELOG.md`
+- `CODE_OF_CONDUCT.md`
+- `CONTRIBUTING.md`
+- `LICENSE`
+- `README.md`
+- `docs/adr/ADR-001-Pragmatic-Clean-Architecture.md`
+- `docs/adr/ADR-002-SQL-Durable-Command-Queue.md`
+- `docs/adr/ADR-003-Collector-Separation-by-Security-Boundary.md`
+- `docs/adr/ADR-Template.md`
+- `docs/adr/README.md`
+- `docs/architecture/01-Introduction.md`
+- `docs/architecture/02-System-Goals.md`
+- `docs/architecture/03-Architecture-Principles.md`
+- `docs/architecture/04-System-Overview.md`
+- `docs/architecture/05-Solution-Structure.md`
+- `docs/architecture/06-Domain-Model.md`
+- `docs/architecture/07-Collector-Architecture.md`
+- `docs/architecture/08-Security-Architecture.md`
+- `docs/architecture/09-Database-Architecture.md`
+- `docs/architecture/10-Deployment-Architecture.md`
+- `docs/architecture/11-Development-Workflow.md`
+- `docs/architecture/Architecture-Handbook.md`
+- `docs/collectors/CollectorQueue.md`
+- `docs/collectors/SqlCollector.md`
+- `docs/collectors/WindowsActionExecutor.md`
+- `docs/collectors/WindowsCollector.md`
+- `docs/database/Database-Overview.md`
+- `docs/database/Retention.md`
+- `docs/handbook/Blazor.md`
+- `docs/handbook/Coding-Standards.md`
+- `docs/handbook/EFCore.md`
+- `docs/handbook/Logging.md`
+- `docs/handbook/Naming-Conventions.md`
+- `docs/handbook/SQLServer.md`
+- `docs/handbook/Testing.md`
+- `docs/handbook/WinRM.md`
+- `docs/index.md`
+- `docs/project/Glossary.md`
+- `docs/project/Manifesto.md`
+- `docs/project/Principles.md`
+- `docs/project/Product-Decisions.md`
+- `docs/project/Roadmap.md`
+- `docs/project/Scope.md`
+- `docs/project/Terminology.md`
+- `docs/project/Vision.md`
+- `docs/security/Auditing.md`
+- `docs/security/Authentication.md`
+- `docs/security/Authorization.md`
+- `docs/security/gMSA.md`
+- `docs/tasks/README.md`
+- `docs/tasks/WP-001-Solution-Skeleton.md`
+- `docs/tasks/WorkPackage-Template.md`
+- `docs/templates/Document-Template.md`
+- `docs/templates/Pull-Request-Template.md`
+- `src/.gitkeep`
+- `tests/.gitkeep`
+- `tools/.gitkeep`
