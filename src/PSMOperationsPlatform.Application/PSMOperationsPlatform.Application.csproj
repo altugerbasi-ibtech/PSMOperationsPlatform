@@ -1,0 +1,7 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\PSMOperationsPlatform.Contracts\PSMOperationsPlatform.Contracts.csproj" />
+    <ProjectReference Include="..\PSMOperationsPlatform.Domain\PSMOperationsPlatform.Domain.csproj" />
+  </ItemGroup>
+</Project>
