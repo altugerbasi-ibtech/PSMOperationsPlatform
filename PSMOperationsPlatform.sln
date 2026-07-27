@@ -1,4 +1,4 @@
-
+﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
@@ -28,6 +28,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSMOperationsPlatform.Domain.Tests", "tests\PSMOperationsPlatform.Domain.Tests\PSMOperationsPlatform.Domain.Tests.csproj", "{CBBFA650-DB2C-4523-9D02-D15A18891722}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSMOperationsPlatform.Infrastructure.Tests", "tests\PSMOperationsPlatform.Infrastructure.Tests\PSMOperationsPlatform.Infrastructure.Tests.csproj", "{AAC17738-CC67-4119-B80A-955D94301CBE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSMOperationsPlatform.WindowsCollector.Tests", "tests\PSMOperationsPlatform.WindowsCollector.Tests\PSMOperationsPlatform.WindowsCollector.Tests.csproj", "{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -171,6 +173,18 @@ Global
 		{AAC17738-CC67-4119-B80A-955D94301CBE}.Release|x64.Build.0 = Release|Any CPU
 		{AAC17738-CC67-4119-B80A-955D94301CBE}.Release|x86.ActiveCfg = Release|Any CPU
 		{AAC17738-CC67-4119-B80A-955D94301CBE}.Release|x86.Build.0 = Release|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Debug|x64.Build.0 = Debug|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Debug|x86.Build.0 = Debug|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Release|x64.ActiveCfg = Release|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Release|x64.Build.0 = Release|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Release|x86.ActiveCfg = Release|Any CPU
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -187,5 +201,6 @@ Global
 		{FFD8DAF4-5C91-46FB-B145-9BF0FC7A9DD9} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{CBBFA650-DB2C-4523-9D02-D15A18891722} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{AAC17738-CC67-4119-B80A-955D94301CBE} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
+		{2CF2C0B3-342D-4C99-9D78-C2C78F4E79C8} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

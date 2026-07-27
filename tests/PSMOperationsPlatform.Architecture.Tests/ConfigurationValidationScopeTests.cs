@@ -55,7 +55,6 @@ public sealed class ConfigurationValidationScopeTests
 
     [Theory]
     [InlineData("PSMOperationsPlatform.Web")]
-    [InlineData("PSMOperationsPlatform.WindowsCollector")]
     [InlineData("PSMOperationsPlatform.SqlCollector")]
     public void ConfigurationValidation_IsNotRegisteredByProductionHosts(
         string hostProject)
@@ -71,6 +70,19 @@ public sealed class ConfigurationValidationScopeTests
         Assert.DoesNotContain(
             "AddOperationsDatabaseConfiguration",
             source);
+    }
+
+    [Fact]
+    public void WindowsCollector_SelectsOperationsDatabaseCapability()
+    {
+        string hostPath = Path.Combine(
+            FindRepositoryRoot(),
+            "src",
+            "PSMOperationsPlatform.WindowsCollector");
+
+        string source = ReadCSharpFiles(hostPath);
+
+        Assert.Contains("AddOperationsDatabasePersistence", source);
     }
 
     private static string ReadCSharpFiles(string path) =>

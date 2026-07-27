@@ -8,7 +8,14 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Hosting.WindowsServices" />
+    <PackageReference Include="Microsoft.PowerShell.SDK" />
+    <PackageReference Include="System.Security.Cryptography.Xml" />
     <ProjectReference Include="..\PSMOperationsPlatform.Collectors.Common\PSMOperationsPlatform.Collectors.Common.csproj" />
     <ProjectReference Include="..\PSMOperationsPlatform.Infrastructure\PSMOperationsPlatform.Infrastructure.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="PSMOperationsPlatform.WindowsCollector.Tests" />
   </ItemGroup>
 </Project>

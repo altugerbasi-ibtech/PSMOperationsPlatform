@@ -184,6 +184,9 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2(3)");
 
+                    b.Property<int>("ConsecutiveConnectivityFailures")
+                        .HasColumnType("int");
+
                     b.Property<string>("ErrorCode")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -360,16 +363,78 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("bit");
 
+                    b.Property<DateTime?>("LastConnectivityAttemptAt")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("LastConnectivityFailureCategory")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("LastConnectivityState")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime?>("LastConnectivitySuccessAt")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("LastSuccessfulTransport")
+                        .HasMaxLength(10)
+                        .HasColumnType("nvarchar(10)");
+
+                    b.Property<DateTime?>("NextConnectivityAttemptAt")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2(3)");
 
+                    b.Property<int>("WinRmHttpPort")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WinRmHttpsPort")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WinRmProbeTimeoutSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<string>("WinRmTransportMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("IsEnabled", "NextConnectivityAttemptAt")
+                        .HasDatabaseName("IX_ManagedServer_Eligibility");
 
                     b.HasIndex("Fqdn")
                         .IsUnique()
                         .HasDatabaseName("UX_ManagedServer_Fqdn");
 
-                    b.ToTable("ManagedServer", "configuration");
+                    b.ToTable("ManagedServer", "configuration", t =>
+                        {
+                            t.HasCheckConstraint("CK_ManagedServer_ConnectivityFailures_NonNegative", "[ConsecutiveConnectivityFailures] >= 0");
+
+                            t.HasCheckConstraint("CK_ManagedServer_LastConnectivityState", "[LastConnectivityState] IN ('Unknown', 'Reachable', 'Unreachable')");
+
+                            t.HasCheckConstraint("CK_ManagedServer_LastConnectivityFailureCategory", "[LastConnectivityFailureCategory] IS NULL OR [LastConnectivityFailureCategory] IN ('DnsFailure', 'ConnectionRefused', 'Timeout', 'TlsFailure', 'AuthenticationFailure', 'AuthorizationFailure', 'WinRmUnavailable', 'ProtocolFailure', 'Unexpected')");
+
+                            t.HasCheckConstraint("CK_ManagedServer_LastSuccessfulTransport", "[LastSuccessfulTransport] IS NULL OR [LastSuccessfulTransport] IN ('Https', 'Http')");
+
+                            t.HasCheckConstraint("CK_ManagedServer_WinRmHttpPort_Range", "[WinRmHttpPort] >= 1 AND [WinRmHttpPort] <= 65535");
+
+                            t.HasCheckConstraint("CK_ManagedServer_WinRmHttpsPort_Range", "[WinRmHttpsPort] >= 1 AND [WinRmHttpsPort] <= 65535");
+
+                            t.HasCheckConstraint("CK_ManagedServer_WinRmProbeTimeout_Positive", "[WinRmProbeTimeoutSeconds] > 0");
+
+                            t.HasCheckConstraint("CK_ManagedServer_WinRmTransportMode", "[WinRmTransportMode] IN ('Auto', 'HttpsOnly', 'HttpOnly')");
+                        });
                 });
 
             modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.CollectorHeartbeat", b =>

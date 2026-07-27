@@ -136,6 +136,36 @@ public sealed class SqlitePersistenceTests
         Assert.Equal("ManagedServer.Registered", record.Action);
     }
 
+    [Fact]
+    public async Task ManagedServerConnectivityStateRoundTripsWithoutHistory()
+    {
+        await using TestDatabase database = await TestDatabase.CreateAsync();
+        var server = new ManagedServer(
+            Guid.NewGuid(),
+            "state.ae.local",
+            Now);
+        DateTime successAt = Now.AddMinutes(1);
+        server.ApplyConnectivitySuccess(
+            successAt,
+            ConnectivityTransport.Http,
+            successAt.AddMinutes(1));
+        database.Context.Add(server);
+        await database.Context.SaveChangesAsync();
+        database.Context.ChangeTracker.Clear();
+
+        ManagedServer persisted =
+            await database.Context.ManagedServers.SingleAsync(
+                target => target.Id == server.Id);
+
+        Assert.Equal(ConnectivityState.Reachable, persisted.LastConnectivityState);
+        Assert.Equal(successAt, persisted.LastConnectivityAttemptAt);
+        Assert.Equal(successAt, persisted.LastConnectivitySuccessAt);
+        Assert.Equal(ConnectivityTransport.Http, persisted.LastSuccessfulTransport);
+        Assert.Equal(0, persisted.ConsecutiveConnectivityFailures);
+        Assert.Null(persisted.LastConnectivityFailureCategory);
+        Assert.Empty(database.Context.Set<AuditLog>().Local);
+    }
+
     private sealed class TestDatabase : IAsyncDisposable
     {
         private TestDatabase(SqliteConnection connection, OperationsDbContext context)
@@ -216,6 +246,10 @@ public sealed class SqlitePersistenceTests
                     property.SetColumnType("TEXT");
                 }
             }
+
+            modelBuilder.Entity<ManagedServer>()
+                .Property(entity => entity.RowVersion)
+                .HasDefaultValueSql("randomblob(8)");
         }
     }
 }

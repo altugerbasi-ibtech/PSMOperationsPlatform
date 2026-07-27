@@ -1,14 +1,17 @@
 ---
 title: PSM Operations Platform — Architecture Baseline
-version: 1.0.3
+version: 1.0.9
 status: Draft
 owner: Architecture
 last_updated: 2026-07-27
+reviewers:
+  - Product Owner
+  - Chief Software Architect
 product: PSM Operations Platform
-baseline_scope: WP-001 completed; WP-002 implemented; WP-003 completed
+baseline_scope: WP-001 through WP-004 completed
 ---
 
-# PSM Operations Platform — Architecture Baseline v1.0.3
+# PSM Operations Platform — Architecture Baseline v1.0.9
 
 ## 1. Purpose
 
@@ -34,8 +37,18 @@ This baseline represents the architecture at the following delivery point:
   completed WP-002 persistence design.
 - WP-003 implements the standard provider order, `PSM__` environment mapping,
   capability-selected OperationsDatabase validation and one safe post-validation
-  startup event. Current production hosts compose providers but do not select
-  the database capability because they do not yet consume persistence.
+  startup event. The Windows Collector selects this capability; other
+  production hosts remain unchanged.
+- WP-004 — Windows Collector Foundation and Target Connectivity is completed.
+  WP-004.2 implements Generic/Windows Service hosting and
+  OperationsDatabase composition. WP-004.3 implements the scoped enabled/due
+  target read path plus its nullable eligibility field, index and controlled
+  migration. WP-004.3A adds target transport configuration, WP-004.4 adds
+  the read-only WinRM probe and WP-004.5 adds last-known result persistence,
+  rowversion conflict handling and deterministic capped backoff.
+- Its delivered product policy is one active collector, HTTPS-first `Auto` with
+  conditional HTTP fallback, no credentials/actions/inventory and durable
+  last-known connectivity with capped backoff.
 
 ## 3. Product vision
 
@@ -557,8 +570,8 @@ WP-003 implements no public options model. No real options property remains
 after the named OperationsDatabase connection is kept outside options.
 `ConnectionStrings:OperationsDatabase` is read through the standard named
 connection API and validated only by hosts that select the operations database
-configuration capability. Current Web, Windows Collector and SQL Collector
-hosts do not yet consume persistence and do not select this capability.
+configuration capability. The Windows Collector selects it for target loading;
+Web and SQL Collector behavior remains unchanged.
 
 `PlatformOptions`, `CollectorRuntimeOptions`, `HeartbeatOptions`,
 `CommandQueueOptions`, `InventoryOptions` and `RetentionOptions` are not WP-003
@@ -913,11 +926,15 @@ It is not complete when:
 1. WP-001 — Solution Skeleton — Completed
 2. WP-002 — Core Persistence Layer — Implemented
 3. WP-003 — Configuration Management — Completed
-4. WP-004 — Durable Command Queue — Planned
-5. WP-005 — Collector Framework — Planned
-6. WP-006 — First production-value collector feature — Planned
+4. WP-004 — Windows Collector Foundation and Target Connectivity — Completed
+5. Windows OS inventory — Planned; number not assigned
+6. Windows Service discovery/inventory — Planned; number not assigned
+7. Durable command queue behavior — Planned; number not assigned
 
 IIS discovery and Windows Service inventory are current candidates for the first production-value collector feature.
+
+The earlier WP-004 Durable Command Queue label is superseded by the completed
+bounded Work Package above; command behavior remains future scope.
 
 ## 20. Architecture decision baseline
 

@@ -106,7 +106,15 @@ public sealed class OperationsModelTests
                 "CK_CommandQueueItem_PayloadJson_IsJson",
                 "CK_CommandQueueItem_Priority_NonNegative",
                 "CK_InventorySnapshot_PayloadJson_IsJson",
-                "CK_InventorySnapshot_SchemaVersion_Positive"
+                "CK_InventorySnapshot_SchemaVersion_Positive",
+                "CK_ManagedServer_ConnectivityFailures_NonNegative",
+                "CK_ManagedServer_LastConnectivityFailureCategory",
+                "CK_ManagedServer_LastConnectivityState",
+                "CK_ManagedServer_LastSuccessfulTransport",
+                "CK_ManagedServer_WinRmHttpPort_Range",
+                "CK_ManagedServer_WinRmHttpsPort_Range",
+                "CK_ManagedServer_WinRmProbeTimeout_Positive",
+                "CK_ManagedServer_WinRmTransportMode"
             },
             names);
     }
@@ -143,6 +151,83 @@ public sealed class OperationsModelTests
         {
             Assert.Equal(directions, actual[name]);
         }
+    }
+
+    [Fact]
+    public void ManagedServerEligibilityUsesNullableMillisecondTimeAndQueryIndex()
+    {
+        IEntityType managedServer = AssertEntity(typeof(ManagedServer));
+        IProperty nextAttempt =
+            managedServer.FindProperty(nameof(ManagedServer.NextConnectivityAttemptAt))!;
+        IIndex eligibilityIndex = Assert.Single(
+            managedServer.GetIndexes(),
+            index =>
+                index.GetDatabaseName() == "IX_ManagedServer_Eligibility");
+
+        Assert.True(nextAttempt.IsNullable);
+        Assert.Equal("datetime2(3)", nextAttempt.GetColumnType());
+        Assert.Equal(
+            new[]
+            {
+                nameof(ManagedServer.IsEnabled),
+                nameof(ManagedServer.NextConnectivityAttemptAt),
+            },
+            eligibilityIndex.Properties.Select(property => property.Name));
+    }
+
+    [Fact]
+    public void ManagedServerWinRmConfigurationUsesRequiredDeterministicMappings()
+    {
+        IEntityType managedServer = AssertEntity(typeof(ManagedServer));
+
+        Assert.Equal(
+            typeof(string),
+            managedServer.FindProperty(nameof(ManagedServer.WinRmTransportMode))!
+                .GetProviderClrType());
+        Assert.False(
+            managedServer.FindProperty(nameof(ManagedServer.WinRmTransportMode))!
+                .IsNullable);
+        Assert.All(
+            new[]
+            {
+                nameof(ManagedServer.WinRmHttpsPort),
+                nameof(ManagedServer.WinRmHttpPort),
+                nameof(ManagedServer.WinRmProbeTimeoutSeconds),
+            },
+            propertyName =>
+                Assert.False(managedServer.FindProperty(propertyName)!.IsNullable));
+    }
+
+    [Fact]
+    public void ManagedServerConnectivityStateUsesSafeMappingsAndConcurrency()
+    {
+        IEntityType managedServer = AssertEntity(typeof(ManagedServer));
+
+        Assert.Equal(
+            typeof(string),
+            managedServer.FindProperty(nameof(ManagedServer.LastConnectivityState))!
+                .GetProviderClrType());
+        Assert.Equal(
+            "datetime2(3)",
+            managedServer.FindProperty(nameof(ManagedServer.LastConnectivityAttemptAt))!
+                .GetColumnType());
+        Assert.Equal(
+            "datetime2(3)",
+            managedServer.FindProperty(nameof(ManagedServer.LastConnectivitySuccessAt))!
+                .GetColumnType());
+        Assert.True(
+            managedServer.FindProperty(nameof(ManagedServer.LastSuccessfulTransport))!
+                .IsNullable);
+        Assert.True(
+            managedServer.FindProperty(
+                nameof(ManagedServer.LastConnectivityFailureCategory))!
+                .IsNullable);
+
+        IProperty rowVersion =
+            managedServer.FindProperty(nameof(ManagedServer.RowVersion))!;
+        Assert.True(rowVersion.IsConcurrencyToken);
+        Assert.Equal(ValueGenerated.OnAddOrUpdate, rowVersion.ValueGenerated);
+        Assert.Equal("rowversion", rowVersion.GetColumnType());
     }
 
     private IEntityType AssertEntity(Type clrType) =>

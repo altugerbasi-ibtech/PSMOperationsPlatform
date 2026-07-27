@@ -1,9 +1,12 @@
 ---
 title: Deployment Architecture
-version: 1.0.1
+version: 1.0.5
 status: Approved
 owner: Architecture
 last_updated: 2026-07-27
+reviewers:
+  - Operations
+  - Security
 product: PSM Operations Platform
 ---
 # Deployment Architecture
@@ -19,10 +22,30 @@ PSM__ConnectionStrings__OperationsDatabase
 ```
 
 The standard environment provider maps this name to
-`ConnectionStrings:OperationsDatabase`. Current production hosts do not yet
-select the OperationsDatabase capability, so the value becomes mandatory only
-when a later Work Package adds a real persistence consumer and explicitly calls
-`AddOperationsDatabaseConfiguration`.
+`ConnectionStrings:OperationsDatabase`. The Windows Collector selects the
+OperationsDatabase capability; other production hosts remain unchanged.
+
+WP-004.2 selects the capability only in the Windows Collector, composes scoped
+SQL Server persistence and supports standard Windows Service hosting under the
+dedicated identity. Interactive console hosting remains available. The service
+name is `PSM Operations Platform Windows Collector`. WP-004.3 loads eligible
+targets and WP-004.4 probes them through in-process PowerShell/WSMan. No
+automatic migration or connectivity-result persistence runs at startup.
+
+Deployment must allow outbound WinRM HTTPS 5986 and, only where target policy
+permits, HTTP 5985. HTTPS certificates must chain to a root trusted by the
+collector host and match the target name. Deployment must not disable
+certificate validation or automate TrustedHosts changes.
+
+The collector host is Windows Server 2022 or later with .NET 10 and a
+Windows Service running as the dedicated gMSA. It requires allowlisted paths to
+OperationsDatabase, DNS, deployment-required AD/Kerberos services and target
+WinRM endpoints, plus synchronized time. SQL and AD/DC ports are
+deployment-defined.
+
+Targets require no collector agent, software/file deployment, database or table.
+No SMB, RDP or broad RPC path is implied. Detailed operator checks are in
+[`../deployment/WP-004-Windows-Collector-Prerequisites.md`](../deployment/WP-004-Windows-Collector-Prerequisites.md).
 
 The provider order from lowest to highest precedence is base JSON, environment
 JSON, Development User Secrets, `PSM__` environment variables and command-line
@@ -86,5 +109,9 @@ it does not replace deployment-side migration logging.
 
 | Version | Date | Description |
 |---|---|---|
+| 1.0.5 | 2026-07-27 | Synchronized deployment wording with completed WP-004 |
+| 1.0.4 | 2026-07-27 | Recorded implemented WP-004.2 host and service composition |
+| 1.0.3 | 2026-07-27 | Added proposed WP-004 host and allowlist prerequisites |
 | 1.0.0 | 2026-07-26 | Initial deployment architecture |
 | 1.0.1 | 2026-07-27 | Documented WP-003 host configuration and design-time migration boundary |
+| 1.0.2 | 2026-07-27 | Documented planned WP-004 service, database and WinRM boundaries |

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using PSMOperationsPlatform.Domain.Entities;
+using PSMOperationsPlatform.Domain.Enums;
 
 namespace PSMOperationsPlatform.Infrastructure.Persistence.Configurations;
 
@@ -8,7 +9,36 @@ public sealed class ManagedServerConfiguration : IEntityTypeConfiguration<Manage
 {
     public void Configure(EntityTypeBuilder<ManagedServer> builder)
     {
-        builder.ToTable("ManagedServer", "configuration");
+        builder.ToTable(
+            "ManagedServer",
+            "configuration",
+            table =>
+            {
+                table.HasCheckConstraint(
+                    "CK_ManagedServer_WinRmTransportMode",
+                    "[WinRmTransportMode] IN ('Auto', 'HttpsOnly', 'HttpOnly')");
+                table.HasCheckConstraint(
+                    "CK_ManagedServer_WinRmHttpsPort_Range",
+                    "[WinRmHttpsPort] >= 1 AND [WinRmHttpsPort] <= 65535");
+                table.HasCheckConstraint(
+                    "CK_ManagedServer_WinRmHttpPort_Range",
+                    "[WinRmHttpPort] >= 1 AND [WinRmHttpPort] <= 65535");
+                table.HasCheckConstraint(
+                    "CK_ManagedServer_WinRmProbeTimeout_Positive",
+                    "[WinRmProbeTimeoutSeconds] > 0");
+                table.HasCheckConstraint(
+                    "CK_ManagedServer_LastConnectivityState",
+                    "[LastConnectivityState] IN ('Unknown', 'Reachable', 'Unreachable')");
+                table.HasCheckConstraint(
+                    "CK_ManagedServer_ConnectivityFailures_NonNegative",
+                    "[ConsecutiveConnectivityFailures] >= 0");
+                table.HasCheckConstraint(
+                    "CK_ManagedServer_LastSuccessfulTransport",
+                    "[LastSuccessfulTransport] IS NULL OR [LastSuccessfulTransport] IN ('Https', 'Http')");
+                table.HasCheckConstraint(
+                    "CK_ManagedServer_LastConnectivityFailureCategory",
+                    "[LastConnectivityFailureCategory] IS NULL OR [LastConnectivityFailureCategory] IN ('DnsFailure', 'ConnectionRefused', 'Timeout', 'TlsFailure', 'AuthenticationFailure', 'AuthorizationFailure', 'WinRmUnavailable', 'ProtocolFailure', 'Unexpected')");
+            });
         builder.HasKey(entity => entity.Id);
         builder.Property(entity => entity.Id).ValueGeneratedNever();
         builder.Property(entity => entity.Fqdn).HasMaxLength(255).IsRequired();
@@ -17,8 +47,43 @@ public sealed class ManagedServerConfiguration : IEntityTypeConfiguration<Manage
         builder.Property(entity => entity.IsEnabled).IsRequired();
         builder.Property(entity => entity.CreatedAt).HasColumnType("datetime2(3)").IsRequired();
         builder.Property(entity => entity.UpdatedAt).HasColumnType("datetime2(3)").IsRequired();
+        builder.Property(entity => entity.NextConnectivityAttemptAt)
+            .HasColumnType("datetime2(3)");
+        builder.Property(entity => entity.WinRmTransportMode)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+        builder.Property(entity => entity.WinRmHttpsPort).IsRequired();
+        builder.Property(entity => entity.WinRmHttpPort).IsRequired();
+        builder.Property(entity => entity.WinRmProbeTimeoutSeconds).IsRequired();
+        builder.Property(entity => entity.LastConnectivityState)
+            .HasConversion<string>()
+            .HasMaxLength(20)
+            .IsRequired();
+        builder.Property(entity => entity.LastConnectivityAttemptAt)
+            .HasColumnType("datetime2(3)");
+        builder.Property(entity => entity.LastConnectivitySuccessAt)
+            .HasColumnType("datetime2(3)");
+        builder.Property(entity => entity.LastSuccessfulTransport)
+            .HasConversion<string>()
+            .HasMaxLength(10);
+        builder.Property(entity => entity.ConsecutiveConnectivityFailures)
+            .IsRequired();
+        builder.Property(entity => entity.LastConnectivityFailureCategory)
+            .HasConversion<string>()
+            .HasMaxLength(40);
+        builder.Property(entity => entity.RowVersion)
+            .IsRowVersion()
+            .IsConcurrencyToken()
+            .IsRequired();
         builder.HasIndex(entity => entity.Fqdn)
             .IsUnique()
             .HasDatabaseName("UX_ManagedServer_Fqdn");
+        builder.HasIndex(entity => new
+        {
+            entity.IsEnabled,
+            entity.NextConnectivityAttemptAt,
+        })
+            .HasDatabaseName("IX_ManagedServer_Eligibility");
     }
 }
