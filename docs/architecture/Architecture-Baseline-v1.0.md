@@ -80,6 +80,13 @@ This baseline represents the architecture at the following delivery point:
   normalized and validated before persistence. Processor, Disk, Volume and
   Network use atomic replace-all; successful empty clears owned state and
   failure preserves it.
+- WP-005.S1 is the post-implementation controlled lab smoke-test release gate.
+  Preparation does not authorize live access; execution requires an explicit
+  dedicated non-production topology and approval record.
+- WP-005.S2 supplies the release gate's read-only PowerShell environment
+  validation tooling. It is operational tooling outside product runtime code,
+  has one public entry point, and performs no remediation or automatic
+  migration.
 
 ## 3. Product vision
 

@@ -1,6 +1,6 @@
 ---
 title: Windows Collector
-version: 1.13.0
+version: 1.15.0
 status: Approved
 owner: Collector
 last_updated: 2026-07-27
@@ -102,10 +102,23 @@ Authoritative documents:
 DNS Alias Discovery is not inventory and requires a separate future Work
 Package.
 
+WP-005.S1 is the post-implementation controlled lab validation package. Its
+prepared runbook does not authorize live access, target changes, migration
+execution, or production deployment. Execution requires the documented
+non-production topology, identity, database, migration, network, and explicit
+approval gate.
+
+WP-005.S2 adds post-implementation PowerShell readiness tooling under
+`tools/readiness`. It validates environment prerequisites without changing the
+collector, target, service, AD, or database. The only public entry point is
+`Invoke-CollectorReadiness.ps1`.
+
 ## Revision history
 
 | Version | Date | Description |
 |---|---|---|
+| 1.15.0 | 2026-07-27 | Added completed WP-005.S2 read-only readiness tooling |
+| 1.14.0 | 2026-07-27 | Linked the WP-005.S1 controlled lab validation gate |
 | 1.13.0 | 2026-07-27 | Implemented atomic Network Adapter and IPv4 inventory |
 | 1.12.0 | 2026-07-27 | Implemented independent Disk and Volume inventory modules |
 | 1.11.0 | 2026-07-27 | Implemented Processor inventory with DeviceID identity |

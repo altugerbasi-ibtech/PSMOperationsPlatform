@@ -1,6 +1,6 @@
 ---
 title: Product Roadmap
-version: 1.13.0
+version: 1.15.0
 status: Draft
 owner: Product
 last_updated: 2026-07-27
@@ -32,6 +32,11 @@ product: PSM Operations Platform
 7. DNS Alias Discovery — Future separate Work Package; number not assigned
 8. Durable command queue behavior — Planned; number not assigned
 
+WP-005.S1 controlled lab validation is preparation-complete and awaits the
+explicit non-production execution gate. WP-005 remains completed.
+WP-005.S2 supplies the completed read-only environment validation tooling used
+by that gate; it does not change WP-005 product behavior.
+
 The older Architecture Baseline list assigns WP-004 to Durable Command Queue.
 That entry is obsolete and requires an approved baseline revision. Remaining
 future Work Packages are not silently renumbered here.
@@ -40,6 +45,8 @@ future Work Packages are not silently renumbered here.
 
 | Version | Date | Description |
 |---|---|---|
+| 1.15.0 | 2026-07-27 | Completed WP-005.S2 collector readiness tooling |
+| 1.14.0 | 2026-07-27 | Added post-implementation WP-005.S1 lab validation gate |
 | 1.13.0 | 2026-07-27 | Passed WP-005 final architecture review |
 | 1.12.0 | 2026-07-27 | Completed WP-005.7 Network Adapter and IPv4 inventory |
 | 1.11.0 | 2026-07-27 | Completed WP-005.6 Disk and Volume inventory |

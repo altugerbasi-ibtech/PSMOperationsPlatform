@@ -1,6 +1,6 @@
 ---
 title: Work Packages
-version: 1.9.0
+version: 1.11.0
 status: Approved
 owner: Engineering
 last_updated: 2026-07-27
@@ -22,11 +22,15 @@ A Work Package is the implementation contract for one bounded change. It include
    — Completed; final architecture review passed
    - [`WP-005.2-Implementation.md`](WP-005.2-Implementation.md)
    - [`WP-005.3-Inventory-Persistence-Foundation.md`](WP-005.3-Inventory-Persistence-Foundation.md)
+   - [`WP-005.S1-Controlled-Lab-Smoke-Test.md`](WP-005.S1-Controlled-Lab-Smoke-Test.md)
+   - [`WP-005.S2-Collector-Environment-Validation.md`](WP-005.S2-Collector-Environment-Validation.md)
 
 ## Revision history
 
 | Version | Date | Description |
 |---|---|---|
+| 1.11.0 | 2026-07-27 | Added completed WP-005.S2 readiness tooling |
+| 1.10.0 | 2026-07-27 | Added WP-005.S1 controlled lab preparation package |
 | 1.9.0 | 2026-07-27 | Recorded WP-005 final architecture review completion |
 | 1.8.0 | 2026-07-27 | Recorded completed WP-005.2 foundation |
 | 1.7.0 | 2026-07-27 | Added WP-005 Windows Inventory Framework analysis package |
