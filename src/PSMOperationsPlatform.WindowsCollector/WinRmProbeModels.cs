@@ -27,7 +27,8 @@ internal sealed record WinRmAttemptResult(
     WinRmTransport Transport,
     bool IsSuccessful,
     WinRmFailureCategory FailureCategory,
-    TimeSpan Duration);
+    TimeSpan Duration,
+    IWinRmCommandSession? Session = null);
 
 internal sealed record WindowsConnectivityProbeResult(
     Guid TargetId,
@@ -36,4 +37,5 @@ internal sealed record WindowsConnectivityProbeResult(
     WinRmTransport? SuccessfulTransport,
     WinRmFailureCategory FinalFailureCategory,
     TimeSpan Duration,
-    DateTimeOffset CompletedAt);
+    DateTimeOffset CompletedAt,
+    IWinRmCommandSession? Session = null);

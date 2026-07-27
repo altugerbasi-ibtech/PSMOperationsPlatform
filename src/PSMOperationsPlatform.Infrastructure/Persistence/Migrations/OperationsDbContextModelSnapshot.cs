@@ -184,9 +184,6 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2(3)");
 
-                    b.Property<int>("ConsecutiveConnectivityFailures")
-                        .HasColumnType("int");
-
                     b.Property<string>("ErrorCode")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
@@ -339,6 +336,178 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsComputerInventory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("ManagedServerId");
+
+                    b.Property<DateTime>("CapturedAt")
+                        .HasColumnType("datetime2(3)");
+
+                    b.Property<string>("ComputerName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("DomainName")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Fqdn")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Manufacturer")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("Model")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("SerialNumber")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WindowsComputerInventory", "inventory");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsDiskInventory", b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                    b.Property<string>("BusType").HasMaxLength(100).HasColumnType("nvarchar(100)");
+                    b.Property<DateTime>("CapturedAt").HasColumnType("datetime2(3)");
+                    b.Property<int?>("DiskNumber").HasColumnType("int");
+                    b.Property<string>("FriendlyName").HasMaxLength(255).HasColumnType("nvarchar(255)");
+                    b.Property<Guid>("ManagedServerId").HasColumnType("uniqueidentifier");
+                    b.Property<string>("PartitionStyle").HasMaxLength(50).HasColumnType("nvarchar(50)");
+                    b.Property<string>("SerialNumber").HasMaxLength(255).HasColumnType("nvarchar(255)");
+                    b.Property<long?>("SizeBytes").HasColumnType("bigint");
+                    b.Property<string>("StableSourceKey").IsRequired().HasMaxLength(260).HasColumnType("nvarchar(260)");
+
+                    b.HasKey("Id");
+                    b.HasIndex("ManagedServerId", "StableSourceKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_WindowsDiskInventory_ManagedServer_StableSourceKey");
+                    b.ToTable("WindowsDiskInventory", "inventory");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsIpv4AddressInventory", b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                    b.Property<string>("Address").IsRequired().HasMaxLength(15).HasColumnType("nvarchar(15)");
+                    b.Property<DateTime>("CapturedAt").HasColumnType("datetime2(3)");
+                    b.Property<bool?>("IsDhcp").HasColumnType("bit");
+                    b.Property<Guid>("ManagedServerId").HasColumnType("uniqueidentifier");
+                    b.Property<Guid>("NetworkAdapterInventoryId").HasColumnType("uniqueidentifier");
+                    b.Property<int>("PrefixLength").HasColumnType("int");
+                    b.Property<string>("StableSourceKey").IsRequired().HasMaxLength(300).HasColumnType("nvarchar(300)");
+
+                    b.HasKey("Id");
+                    b.HasIndex("NetworkAdapterInventoryId")
+                        .HasDatabaseName("IX_WindowsIpv4AddressInventory_NetworkAdapterInventoryId");
+                    b.HasIndex("ManagedServerId", "StableSourceKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_WindowsIpv4AddressInventory_ManagedServer_StableSourceKey");
+                    b.ToTable("WindowsIpv4AddressInventory", "inventory", t =>
+                        {
+                            t.HasCheckConstraint("CK_WindowsIpv4AddressInventory_PrefixLength_Range", "[PrefixLength] >= 0 AND [PrefixLength] <= 32");
+                        });
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsMemoryInventory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("ManagedServerId");
+                    b.Property<DateTime>("CapturedAt").HasColumnType("datetime2(3)");
+                    b.Property<long>("TotalPhysicalMemoryBytes").HasColumnType("bigint");
+
+                    b.HasKey("Id");
+                    b.ToTable("WindowsMemoryInventory", "inventory", t =>
+                        {
+                            t.HasCheckConstraint("CK_WindowsMemoryInventory_TotalPhysicalMemoryBytes_NonNegative", "[TotalPhysicalMemoryBytes] >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsNetworkAdapterInventory", b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                    b.Property<DateTime>("CapturedAt").HasColumnType("datetime2(3)");
+                    b.Property<string>("InterfaceDescription").HasMaxLength(500).HasColumnType("nvarchar(500)");
+                    b.Property<long?>("LinkSpeedBitsPerSecond").HasColumnType("bigint");
+                    b.Property<string>("MacAddress").HasMaxLength(20).HasColumnType("nvarchar(20)");
+                    b.Property<Guid>("ManagedServerId").HasColumnType("uniqueidentifier");
+                    b.Property<string>("Name").HasMaxLength(255).HasColumnType("nvarchar(255)");
+                    b.Property<string>("OperationalStatus").HasMaxLength(50).HasColumnType("nvarchar(50)");
+                    b.Property<string>("StableSourceKey").IsRequired().HasMaxLength(200).HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+                    b.HasIndex("ManagedServerId", "StableSourceKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_WindowsNetworkAdapterInventory_ManagedServer_StableSourceKey");
+                    b.ToTable("WindowsNetworkAdapterInventory", "inventory");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsOperatingSystemInventory", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uniqueidentifier")
+                        .HasColumnName("ManagedServerId");
+                    b.Property<string>("Architecture").IsRequired().HasMaxLength(50).HasColumnType("nvarchar(50)");
+                    b.Property<string>("BuildNumber").IsRequired().HasMaxLength(50).HasColumnType("nvarchar(50)");
+                    b.Property<DateTime>("CapturedAt").HasColumnType("datetime2(3)");
+                    b.Property<string>("Caption").IsRequired().HasMaxLength(255).HasColumnType("nvarchar(255)");
+                    b.Property<string>("Edition").HasMaxLength(100).HasColumnType("nvarchar(100)");
+                    b.Property<DateTime?>("InstallDate").HasColumnType("datetime2(3)");
+                    b.Property<DateTime?>("LastBootTime").HasColumnType("datetime2(3)");
+                    b.Property<string>("TimeZoneId").HasMaxLength(100).HasColumnType("nvarchar(100)");
+                    b.Property<string>("Version").IsRequired().HasMaxLength(100).HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+                    b.ToTable("WindowsOperatingSystemInventory", "inventory");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsProcessorInventory", b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                    b.Property<DateTime>("CapturedAt").HasColumnType("datetime2(3)");
+                    b.Property<int?>("CoreCount").HasColumnType("int");
+                    b.Property<int?>("LogicalProcessorCount").HasColumnType("int");
+                    b.Property<Guid>("ManagedServerId").HasColumnType("uniqueidentifier");
+                    b.Property<string>("Manufacturer").HasMaxLength(255).HasColumnType("nvarchar(255)");
+                    b.Property<int?>("MaxClockSpeedMhz").HasColumnType("int");
+                    b.Property<string>("Name").HasMaxLength(255).HasColumnType("nvarchar(255)");
+                    b.Property<string>("StableSourceKey").IsRequired().HasMaxLength(200).HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+                    b.HasIndex("ManagedServerId", "StableSourceKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_WindowsProcessorInventory_ManagedServer_StableSourceKey");
+                    b.ToTable("WindowsProcessorInventory", "inventory");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsVolumeInventory", b =>
+                {
+                    b.Property<Guid>("Id").HasColumnType("uniqueidentifier");
+                    b.Property<DateTime>("CapturedAt").HasColumnType("datetime2(3)");
+                    b.Property<string>("DriveLetter").HasMaxLength(10).HasColumnType("nvarchar(10)");
+                    b.Property<string>("FileSystem").HasMaxLength(50).HasColumnType("nvarchar(50)");
+                    b.Property<long?>("FreeSpaceBytes").HasColumnType("bigint");
+                    b.Property<string>("Label").HasMaxLength(255).HasColumnType("nvarchar(255)");
+                    b.Property<Guid>("ManagedServerId").HasColumnType("uniqueidentifier");
+                    b.Property<long?>("SizeBytes").HasColumnType("bigint");
+                    b.Property<string>("StableSourceKey").IsRequired().HasMaxLength(260).HasColumnType("nvarchar(260)");
+
+                    b.HasKey("Id");
+                    b.HasIndex("ManagedServerId", "StableSourceKey")
+                        .IsUnique()
+                        .HasDatabaseName("UX_WindowsVolumeInventory_ManagedServer_StableSourceKey");
+                    b.ToTable("WindowsVolumeInventory", "inventory");
+                });
+
             modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.ManagedServer", b =>
                 {
                     b.Property<Guid>("Id")
@@ -346,6 +515,9 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2(3)");
+
+                    b.Property<int>("ConsecutiveConnectivityFailures")
+                        .HasColumnType("int");
 
                     b.Property<string>("DisplayName")
                         .HasMaxLength(255)
@@ -488,6 +660,93 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("FK_InventorySnapshot_ManagedServer_ManagedServerId");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsComputerInventory", b =>
+                {
+                    b.HasOne("PSMOperationsPlatform.Domain.Entities.ManagedServer", null)
+                        .WithOne()
+                        .HasForeignKey("PSMOperationsPlatform.Domain.Entities.WindowsComputerInventory", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_WindowsComputerInventory_ManagedServer_ManagedServerId");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsDiskInventory", b =>
+                {
+                    b.HasOne("PSMOperationsPlatform.Domain.Entities.ManagedServer", null)
+                        .WithMany()
+                        .HasForeignKey("ManagedServerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_WindowsDiskInventory_ManagedServer_ManagedServerId");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsIpv4AddressInventory", b =>
+                {
+                    b.HasOne("PSMOperationsPlatform.Domain.Entities.ManagedServer", null)
+                        .WithMany()
+                        .HasForeignKey("ManagedServerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_WindowsIpv4AddressInventory_ManagedServer_ManagedServerId");
+
+                    b.HasOne("PSMOperationsPlatform.Domain.Entities.WindowsNetworkAdapterInventory", null)
+                        .WithMany()
+                        .HasForeignKey("NetworkAdapterInventoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_WindowsIpv4AddressInventory_WindowsNetworkAdapterInventory_NetworkAdapterInventoryId");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsMemoryInventory", b =>
+                {
+                    b.HasOne("PSMOperationsPlatform.Domain.Entities.ManagedServer", null)
+                        .WithOne()
+                        .HasForeignKey("PSMOperationsPlatform.Domain.Entities.WindowsMemoryInventory", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_WindowsMemoryInventory_ManagedServer_ManagedServerId");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsNetworkAdapterInventory", b =>
+                {
+                    b.HasOne("PSMOperationsPlatform.Domain.Entities.ManagedServer", null)
+                        .WithMany()
+                        .HasForeignKey("ManagedServerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_WindowsNetworkAdapterInventory_ManagedServer_ManagedServerId");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsOperatingSystemInventory", b =>
+                {
+                    b.HasOne("PSMOperationsPlatform.Domain.Entities.ManagedServer", null)
+                        .WithOne()
+                        .HasForeignKey("PSMOperationsPlatform.Domain.Entities.WindowsOperatingSystemInventory", "Id")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_WindowsOperatingSystemInventory_ManagedServer_ManagedServerId");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsProcessorInventory", b =>
+                {
+                    b.HasOne("PSMOperationsPlatform.Domain.Entities.ManagedServer", null)
+                        .WithMany()
+                        .HasForeignKey("ManagedServerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_WindowsProcessorInventory_ManagedServer_ManagedServerId");
+                });
+
+            modelBuilder.Entity("PSMOperationsPlatform.Domain.Entities.WindowsVolumeInventory", b =>
+                {
+                    b.HasOne("PSMOperationsPlatform.Domain.Entities.ManagedServer", null)
+                        .WithMany()
+                        .HasForeignKey("ManagedServerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("FK_WindowsVolumeInventory_ManagedServer_ManagedServerId");
                 });
 #pragma warning restore 612, 618
         }

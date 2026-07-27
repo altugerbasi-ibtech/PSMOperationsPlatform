@@ -1,6 +1,6 @@
 ---
 title: Work Packages
-version: 1.6.0
+version: 1.9.0
 status: Approved
 owner: Engineering
 last_updated: 2026-07-27
@@ -18,11 +18,18 @@ A Work Package is the implementation contract for one bounded change. It include
 2. [`WP-002-Core-Persistence-Layer.md`](WP-002-Core-Persistence-Layer.md) — Completed
 3. [`WP-003-Configuration-Management.md`](WP-003-Configuration-Management.md) — Completed
 4. [`WP-004-Windows-Collector-Foundation-and-Target-Connectivity.md`](WP-004-Windows-Collector-Foundation-and-Target-Connectivity.md) — Completed
+5. [`WP-005-Windows-Inventory-Framework.md`](WP-005-Windows-Inventory-Framework.md)
+   — Completed; final architecture review passed
+   - [`WP-005.2-Implementation.md`](WP-005.2-Implementation.md)
+   - [`WP-005.3-Inventory-Persistence-Foundation.md`](WP-005.3-Inventory-Persistence-Foundation.md)
 
 ## Revision history
 
 | Version | Date | Description |
 |---|---|---|
+| 1.9.0 | 2026-07-27 | Recorded WP-005 final architecture review completion |
+| 1.8.0 | 2026-07-27 | Recorded completed WP-005.2 foundation |
+| 1.7.0 | 2026-07-27 | Added WP-005 Windows Inventory Framework analysis package |
 | 1.6.0 | 2026-07-27 | Recorded WP-004 final review and completion |
 | 1.5.0 | 2026-07-27 | Recorded WP-004.5 state persistence/backoff completion |
 | 1.4.0 | 2026-07-27 | Recorded WP-004.4 connectivity probe completion |

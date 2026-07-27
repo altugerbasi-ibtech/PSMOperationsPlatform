@@ -143,6 +143,7 @@ internal sealed class WindowsConnectivityProbe(
                 ? WinRmFailureCategory.None
                 : finalAttempt.FailureCategory,
             timeProvider.GetElapsedTime(startedAt),
-            timeProvider.GetLocalNow());
+            timeProvider.GetLocalNow(),
+            finalAttempt.Session);
     }
 }

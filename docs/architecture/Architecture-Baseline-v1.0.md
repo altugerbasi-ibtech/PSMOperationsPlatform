@@ -1,6 +1,6 @@
 ---
 title: PSM Operations Platform — Architecture Baseline
-version: 1.0.9
+version: 1.0.17
 status: Draft
 owner: Architecture
 last_updated: 2026-07-27
@@ -8,10 +8,10 @@ reviewers:
   - Product Owner
   - Chief Software Architect
 product: PSM Operations Platform
-baseline_scope: WP-001 through WP-004 completed
+baseline_scope: WP-001 through WP-004 and WP-005.7 completed
 ---
 
-# PSM Operations Platform — Architecture Baseline v1.0.9
+# PSM Operations Platform — Architecture Baseline v1.0.17
 
 ## 1. Purpose
 
@@ -49,6 +49,37 @@ This baseline represents the architecture at the following delivery point:
 - Its delivered product policy is one active collector, HTTPS-first `Auto` with
   conditional HTTP fallback, no credentials/actions/inventory and durable
   last-known connectivity with capped backoff.
+- WP-005.1 — Windows Inventory Framework analysis/documentation completed
+  before implementation and introduced no code or migration in that sprint.
+- The approved design reuses one successful target-scoped WinRM session from
+  probe through explicit, ordered, compile-time inventory modules.
+- Current state uses normalized `inventory` entities under `ManagedServer`.
+  Singular Computer, Operating System and Memory update; plural Processor,
+  Disk and Volume replace all after complete validation. Network Adapter and
+  IPv4 Address form one atomic Network Snapshot. Failure preserves the last
+  successful ownership-boundary state.
+- Inventory introduces no reflection, dynamic loading, runtime plugin,
+  arbitrary script or remote action. DNS Alias Discovery is a separate future
+  Work Package.
+- WP-005.2 — Session Ownership and Inventory Orchestration Foundation is
+  completed. Successful session ownership transfers from transport to probe to
+  the target cycle; the cycle passes the identical session to an explicit,
+  ordered empty module pipeline and disposes it once.
+- WP-005.2 adds no inventory entity, migration, persistence, concrete module,
+  remote command, retry or timeout. Existing WP-004 open/operation timeout,
+  `Auto` budget, cancellation and bounded target concurrency remain binding.
+- Inventory event IDs `2350`–`2354` are reserved for orchestration lifecycle.
+- WP-005.3 implements eight normalized current-state tables, explicit
+  ownership-focused stores and the controlled
+  `20260727230000_AddWindowsInventoryCurrentState` migration.
+- WP-005.4 through WP-005.7 implement seven ordered modules: Computer,
+  Operating System, Memory, Processor, Disk, Volume and the combined Network
+  Snapshot. Each parallel target resolves its scoped orchestrator, modules,
+  stores and EF context independently.
+- Collection uses explicit `Get-CimInstance` projections. Results are
+  normalized and validated before persistence. Processor, Disk, Volume and
+  Network use atomic replace-all; successful empty clears owned state and
+  failure preserves it.
 
 ## 3. Product vision
 
@@ -514,10 +545,10 @@ Its approved task, ER model, migration and validation evidence define:
 - concurrency behavior;
 - persistence exceptions, error mapping and logging.
 
-The earlier planned ADR-006 reference duplicated decisions already delivered
-and documented by WP-002. No ADR-006 exists in the repository, and it is not a
-WP-003 prerequisite. WP-003 SHALL NOT redesign the persistence model, change
-migrations or schemas, or redefine `OperationsDbContext` behavior.
+WP-002 remains the database foundation. ADR-006 defines the later WP-005
+inventory ownership boundary, IPv4-only Network Snapshot and atomic normalized
+multi-table replacement. It does not redesign WP-002 or change WP-003
+configuration behavior.
 
 ## 12. Configuration and infrastructure direction
 
@@ -927,11 +958,13 @@ It is not complete when:
 2. WP-002 — Core Persistence Layer — Implemented
 3. WP-003 — Configuration Management — Completed
 4. WP-004 — Windows Collector Foundation and Target Connectivity — Completed
-5. Windows OS inventory — Planned; number not assigned
+5. WP-005 — Windows Inventory Framework — Completed through WP-005.7
 6. Windows Service discovery/inventory — Planned; number not assigned
-7. Durable command queue behavior — Planned; number not assigned
+7. DNS Alias Discovery — Future separate Work Package; number not assigned
+8. Durable command queue behavior — Planned; number not assigned
 
-IIS discovery and Windows Service inventory are current candidates for the first production-value collector feature.
+IIS discovery and Windows Service inventory are candidates for a later
+production-value collector feature.
 
 The earlier WP-004 Durable Command Queue label is superseded by the completed
 bounded Work Package above; command behavior remains future scope.
@@ -944,8 +977,12 @@ bounded Work Package above; command behavior remains future scope.
 - ADR-002 — SQL Durable Command Queue
 - ADR-003 — Collector Separation by Security Boundary
 - ADR-005 — Türkiye Local Time Standard
+- ADR-006 — Inventory Ownership Boundaries
 
-The repository currently contains ADR-001 through ADR-003. ADR-005 must be added to the repository if it has not already been committed.
+ADR-005 remains accepted in this baseline but its source file is missing and
+must be restored through architecture governance. ADR-006 explicitly confirms
+the existing Türkiye local-time standard for WP-005 inventory, so the missing
+ADR-005 source does not block WP-005.3.
 
 ## 21. Prohibited drift
 
@@ -999,6 +1036,7 @@ Primary repository references:
 - `docs/adr/ADR-001-Pragmatic-Clean-Architecture.md`
 - `docs/adr/ADR-002-SQL-Durable-Command-Queue.md`
 - `docs/adr/ADR-003-Collector-Separation-by-Security-Boundary.md`
+- `docs/adr/ADR-006-Inventory-Ownership-Boundaries.md`
 - `docs/tasks/WP-001-Solution-Skeleton.md`
 - `docs/tasks/WP-002-Core-Persistence-Layer.md`
 - `docs/tasks/WP-003-Configuration-Management.md`

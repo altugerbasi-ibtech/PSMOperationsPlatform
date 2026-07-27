@@ -26,26 +26,29 @@ internal sealed class WinRmTransportClient(
             CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 timeoutSource.Token);
+        IWinRmCommandSession? session = null;
 
         try
         {
-            await using IWinRmSession session =
-                sessionFactory.Create(target, transport, timeout);
+            session = sessionFactory.Create(target, transport, timeout);
             await session.OpenAsync(linkedSource.Token);
-            return Result(true, WinRmFailureCategory.None);
+            return Result(true, WinRmFailureCategory.None, session);
         }
         catch (OperationCanceledException)
             when (cancellationToken.IsCancellationRequested)
         {
+            await DisposeFailedSessionAsync(session);
             return Result(false, WinRmFailureCategory.Cancelled);
         }
         catch (OperationCanceledException)
             when (timeoutSource.IsCancellationRequested)
         {
+            await DisposeFailedSessionAsync(session);
             return Result(false, WinRmFailureCategory.Timeout);
         }
         catch (Exception exception)
         {
+            await DisposeFailedSessionAsync(session);
             return Result(
                 false,
                 WinRmFailureClassifier.Classify(exception));
@@ -53,11 +56,29 @@ internal sealed class WinRmTransportClient(
 
         WinRmAttemptResult Result(
             bool isSuccessful,
-            WinRmFailureCategory failureCategory) =>
+            WinRmFailureCategory failureCategory,
+            IWinRmCommandSession? session = null) =>
             new(
                 transport,
                 isSuccessful,
                 failureCategory,
-                timeProvider.GetElapsedTime(startedAt));
+                timeProvider.GetElapsedTime(startedAt),
+                session);
+    }
+
+    private static async ValueTask DisposeFailedSessionAsync(
+        IWinRmCommandSession? session)
+    {
+        if (session is not null)
+        {
+            try
+            {
+                await session.DisposeAsync();
+            }
+            catch
+            {
+                // Cleanup failure must not replace the classified open result.
+            }
+        }
     }
 }

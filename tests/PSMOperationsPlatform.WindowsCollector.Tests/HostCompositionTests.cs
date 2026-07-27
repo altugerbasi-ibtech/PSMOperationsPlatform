@@ -78,6 +78,31 @@ public sealed class HostCompositionTests
                 descriptor.ServiceType ==
                     typeof(IConnectivityResultPersistence) &&
                 descriptor.Lifetime == ServiceLifetime.Scoped);
+        Assert.Contains(
+            builder.Services,
+            descriptor =>
+                descriptor.ServiceType ==
+                    typeof(IWindowsInventoryOrchestrator) &&
+                descriptor.Lifetime == ServiceLifetime.Scoped);
+        ServiceDescriptor[] modules = builder.Services
+            .Where(descriptor =>
+                descriptor.ServiceType == typeof(IWindowsInventoryModule))
+            .ToArray();
+        Assert.Equal(7, modules.Length);
+        Assert.All(
+            modules,
+            descriptor => Assert.Equal(ServiceLifetime.Scoped, descriptor.Lifetime));
+        Assert.Equal(
+            [
+                typeof(ComputerInventoryModule),
+                typeof(OperatingSystemInventoryModule),
+                typeof(MemoryInventoryModule),
+                typeof(ProcessorInventoryModule),
+                typeof(DiskInventoryModule),
+                typeof(VolumeInventoryModule),
+                typeof(NetworkInventoryModule),
+            ],
+            modules.Select(descriptor => descriptor.ImplementationType));
 
         using IHost host = builder.Build();
         using IServiceScope scope = host.Services.CreateScope();

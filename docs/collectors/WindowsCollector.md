@@ -1,6 +1,6 @@
 ---
 title: Windows Collector
-version: 1.6.0
+version: 1.13.0
 status: Approved
 owner: Collector
 last_updated: 2026-07-27
@@ -52,10 +52,67 @@ are in
 Security controls are in
 [`../security/WP-004-Windows-Collector-Security.md`](../security/WP-004-Windows-Collector-Security.md).
 
+## WP-005 inventory direction
+
+WP-005.2 session ownership and orchestration foundation is implemented.
+WP-005.3 added normalized persistence and a controlled migration. Successful WinRM session
+ownership moves from transport to probe to the target cycle, which passes the
+identical session to orchestration and disposes it once. Each parallel target
+resolves its orchestrator, modules, stores and EF context from its own target
+scope. The seven modules are Computer, Operating System, Memory, Processor,
+Disk, Volume and the combined Network Snapshot.
+
+Network Adapter and IPv4 Address are one atomic IPv4-only Network Snapshot.
+`CapturedAt` remains application-owned Türkiye local time. WP-005.2 ordering,
+timeout, cancellation and session ownership remain unchanged.
+
+WP-005.4 registers the first three scoped inventory modules in deterministic
+order: Computer, Operating System and Memory. They reuse the successful session,
+run allowlisted `Get-CimInstance` object projections, normalize and validate
+the complete result, then call their explicit WP-005.3 store. Invalid or failed
+results are not persisted.
+
+WP-005.5 adds Processor as the fourth ordered module. `Win32_Processor.DeviceID`
+is the target-scoped stable source key. A fully normalized collection is passed
+once to the existing processor replace-all store; successful empty collection
+clears prior state and failure preserves it.
+
+WP-005.6 adds Disk and Volume as the fifth and sixth ordered modules.
+`MSFT_StorageObject.UniqueId` is the stable key for both. They use independent
+replace-all stores because the model has no Disk–Volume relationship.
+
+WP-005.7 adds one Network module as the seventh ordered module. It collects
+Adapter and IPv4 objects, correlates them through transient InterfaceIndex,
+uses canonical InterfaceGuid as adapter identity and submits one ADR-006
+Network Snapshot transaction. IPv6 is excluded at the CIM query.
+
+Modules are explicitly registered and ordered. Reflection, dynamic loading and
+a runtime plugin SDK remain prohibited. Singular snapshots update; plural
+snapshots use validated transactional replace-all. Failed modules preserve
+their prior current state.
+
+Authoritative documents:
+
+- [`WP-005-Windows-Inventory-Architecture.md`](WP-005-Windows-Inventory-Architecture.md)
+- [`WP-005-WinRM-Inventory-Orchestration.md`](WP-005-WinRM-Inventory-Orchestration.md)
+- [`WP-005-Inventory-Orchestration.md`](WP-005-Inventory-Orchestration.md)
+- [`WP-005-Session-Lifecycle.md`](WP-005-Session-Lifecycle.md)
+- [`../database/WP-005-Inventory-Data-Model.md`](../database/WP-005-Inventory-Data-Model.md)
+
+DNS Alias Discovery is not inventory and requires a separate future Work
+Package.
+
 ## Revision history
 
 | Version | Date | Description |
 |---|---|---|
+| 1.13.0 | 2026-07-27 | Implemented atomic Network Adapter and IPv4 inventory |
+| 1.12.0 | 2026-07-27 | Implemented independent Disk and Volume inventory modules |
+| 1.11.0 | 2026-07-27 | Implemented Processor inventory with DeviceID identity |
+| 1.10.0 | 2026-07-27 | Implemented Computer, Operating System and Memory inventory modules |
+| 1.9.0 | 2026-07-27 | Recorded completed WP-005.3 persistence foundation |
+| 1.8.0 | 2026-07-27 | Recorded implemented WP-005.2 session ownership and empty orchestration |
+| 1.7.0 | 2026-07-27 | Added approved WP-005.1 inventory direction and DNS scope boundary |
 | 1.6.0 | 2026-07-27 | Recorded completed WP-004 final review and delivered boundary |
 | 1.5.0 | 2026-07-27 | Recorded completed WP-004.5 state persistence and deterministic backoff |
 | 1.4.0 | 2026-07-27 | Recorded completed WP-004.4 read-only WinRM probe |

@@ -1,6 +1,6 @@
 ---
 title: Database Overview
-version: 1.1.0
+version: 1.2.0
 status: Approved
 owner: Database
 last_updated: 2026-07-26
@@ -16,3 +16,10 @@ last successful transport, consecutive failure count, next eligibility, safe
 failure category and rowversion. The controlled
 `AddManagedServerConnectivityState` migration adds these fields without
 history, raw errors, credentials or automatic startup migration.
+
+WP-005.3 adds normalized Windows current-state tables in `inventory`.
+Single-state stores update explicitly; collection stores use transactional
+replace-all. Network Adapter and IPv4 Address form one atomic snapshot with a
+restrictive foreign key. Empty success clears owned state; failure,
+cancellation or invalid input preserves it. `CapturedAt` remains
+application-owned Türkiye local time. Migration is not applied at startup.

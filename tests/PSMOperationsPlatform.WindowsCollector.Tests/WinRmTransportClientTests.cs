@@ -3,7 +3,7 @@ namespace PSMOperationsPlatform.WindowsCollector.Tests;
 public sealed class WinRmTransportClientTests
 {
     [Fact]
-    public async Task SuccessDisposesSession()
+    public async Task SuccessTransfersSessionOwnershipWithoutDisposal()
     {
         var session = new TestSession();
         var client = CreateClient(session);
@@ -15,6 +15,10 @@ public sealed class WinRmTransportClientTests
             CancellationToken.None);
 
         Assert.True(result.IsSuccessful);
+        Assert.Same(session, result.Session);
+        Assert.False(session.Disposed);
+
+        await result.Session!.DisposeAsync();
         Assert.True(session.Disposed);
     }
 
@@ -70,6 +74,27 @@ public sealed class WinRmTransportClientTests
 
         Assert.Equal(WinRmFailureCategory.Cancelled, result.FailureCategory);
         Assert.True(session.Disposed);
+    }
+
+    [Fact]
+    public async Task DisposalFailureDoesNotReplaceClassifiedOpenFailure()
+    {
+        var session = new TestSession(
+            new System.Net.Sockets.SocketException(
+                (int)System.Net.Sockets.SocketError.ConnectionRefused),
+            throwOnDispose: true);
+        var client = CreateClient(session);
+
+        WinRmAttemptResult result = await client.AttemptAsync(
+            Target(),
+            WinRmTransport.Https,
+            TimeSpan.FromSeconds(1),
+            CancellationToken.None);
+
+        Assert.Equal(
+            WinRmFailureCategory.ConnectionRefused,
+            result.FailureCategory);
+        Assert.Equal(1, session.DisposeAttempts);
     }
 
     [Theory]
@@ -152,7 +177,7 @@ public sealed class WinRmTransportClientTests
     private sealed class TestSessionFactory(TestSession session)
         : IWinRmSessionFactory
     {
-        public IWinRmSession Create(
+        public IWinRmCommandSession Create(
             WindowsTarget target,
             WinRmTransport transport,
             TimeSpan timeout) => session;
@@ -160,9 +185,14 @@ public sealed class WinRmTransportClientTests
 
     private sealed class TestSession(
         Exception? exception = null,
-        bool blockUntilCancellation = false) : IWinRmSession
+        bool blockUntilCancellation = false,
+        bool throwOnDispose = false) : IWinRmCommandSession
     {
+        public bool IsUsable => !Disposed;
+
         public bool Disposed { get; private set; }
+
+        public int DisposeAttempts { get; private set; }
 
         public async Task OpenAsync(CancellationToken cancellationToken)
         {
@@ -177,8 +207,19 @@ public sealed class WinRmTransportClientTests
             }
         }
 
+        public Task<IReadOnlyList<WinRmCommandRecord>> InvokeAsync(
+            WinRmCommandDefinition command,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<WinRmCommandRecord>>([]);
+
         public ValueTask DisposeAsync()
         {
+            DisposeAttempts++;
+            if (throwOnDispose)
+            {
+                throw new InvalidOperationException("Injected cleanup failure.");
+            }
+
             Disposed = true;
             return ValueTask.CompletedTask;
         }

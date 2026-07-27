@@ -27,6 +27,30 @@ public class OperationsDbContext : DbContext
 
     public DbSet<InventorySnapshot> InventorySnapshots => Set<InventorySnapshot>();
 
+    public DbSet<WindowsComputerInventory> WindowsComputerInventories =>
+        Set<WindowsComputerInventory>();
+
+    public DbSet<WindowsOperatingSystemInventory> WindowsOperatingSystemInventories =>
+        Set<WindowsOperatingSystemInventory>();
+
+    public DbSet<WindowsMemoryInventory> WindowsMemoryInventories =>
+        Set<WindowsMemoryInventory>();
+
+    public DbSet<WindowsProcessorInventory> WindowsProcessorInventories =>
+        Set<WindowsProcessorInventory>();
+
+    public DbSet<WindowsDiskInventory> WindowsDiskInventories =>
+        Set<WindowsDiskInventory>();
+
+    public DbSet<WindowsVolumeInventory> WindowsVolumeInventories =>
+        Set<WindowsVolumeInventory>();
+
+    public DbSet<WindowsNetworkAdapterInventory> WindowsNetworkAdapterInventories =>
+        Set<WindowsNetworkAdapterInventory>();
+
+    public DbSet<WindowsIpv4AddressInventory> WindowsIpv4AddressInventories =>
+        Set<WindowsIpv4AddressInventory>();
+
     public DbSet<CommandQueueItem> CommandQueueItems => Set<CommandQueueItem>();
 
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();

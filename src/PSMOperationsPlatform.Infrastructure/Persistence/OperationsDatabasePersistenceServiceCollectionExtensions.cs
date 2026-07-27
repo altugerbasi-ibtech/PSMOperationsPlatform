@@ -24,6 +24,13 @@ public static class OperationsDatabasePersistenceServiceCollectionExtensions
         }
 
         services.AddSingleton<OperationsDatabasePersistenceRegistration>();
+        services.AddScoped<IComputerInventoryStore, ComputerInventoryStore>();
+        services.AddScoped<IOperatingSystemInventoryStore, OperatingSystemInventoryStore>();
+        services.AddScoped<IMemoryInventoryStore, MemoryInventoryStore>();
+        services.AddScoped<IProcessorSnapshotStore, ProcessorSnapshotStore>();
+        services.AddScoped<IDiskSnapshotStore, DiskSnapshotStore>();
+        services.AddScoped<IVolumeSnapshotStore, VolumeSnapshotStore>();
+        services.AddScoped<INetworkSnapshotStore, NetworkSnapshotStore>();
         services.AddDbContext<OperationsDbContext>((serviceProvider, options) =>
         {
             string connectionString = serviceProvider

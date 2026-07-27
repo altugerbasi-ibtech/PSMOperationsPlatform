@@ -17,7 +17,15 @@ public sealed class OperationsModelTests
             [typeof(CollectorRun)] = ("collection", "CollectorRun"),
             [typeof(InventorySnapshot)] = ("inventory", "InventorySnapshot"),
             [typeof(CommandQueueItem)] = ("operations", "CommandQueueItem"),
-            [typeof(AuditLog)] = ("audit", "AuditLog")
+            [typeof(AuditLog)] = ("audit", "AuditLog"),
+            [typeof(WindowsComputerInventory)] = ("inventory", "WindowsComputerInventory"),
+            [typeof(WindowsOperatingSystemInventory)] = ("inventory", "WindowsOperatingSystemInventory"),
+            [typeof(WindowsMemoryInventory)] = ("inventory", "WindowsMemoryInventory"),
+            [typeof(WindowsProcessorInventory)] = ("inventory", "WindowsProcessorInventory"),
+            [typeof(WindowsDiskInventory)] = ("inventory", "WindowsDiskInventory"),
+            [typeof(WindowsVolumeInventory)] = ("inventory", "WindowsVolumeInventory"),
+            [typeof(WindowsNetworkAdapterInventory)] = ("inventory", "WindowsNetworkAdapterInventory"),
+            [typeof(WindowsIpv4AddressInventory)] = ("inventory", "WindowsIpv4AddressInventory")
         };
 
     private readonly IModel model = CreateContext()
@@ -46,7 +54,7 @@ public sealed class OperationsModelTests
             .SelectMany(entity => entity.GetForeignKeys())
             .ToArray();
 
-        Assert.Equal(6, foreignKeys.Length);
+        Assert.Equal(15, foreignKeys.Length);
         Assert.All(foreignKeys, foreignKey => Assert.Equal(DeleteBehavior.Restrict, foreignKey.DeleteBehavior));
     }
 
@@ -61,6 +69,46 @@ public sealed class OperationsModelTests
             candidate => candidate.GetDatabaseName() == indexName);
 
         Assert.True(index.IsUnique);
+    }
+
+    [Fact]
+    public void Inventory_collections_have_target_scoped_unique_keys_and_bounded_strings()
+    {
+        Type[] collectionTypes =
+        [
+            typeof(WindowsProcessorInventory),
+            typeof(WindowsDiskInventory),
+            typeof(WindowsVolumeInventory),
+            typeof(WindowsNetworkAdapterInventory),
+            typeof(WindowsIpv4AddressInventory),
+        ];
+
+        foreach (Type collectionType in collectionTypes)
+        {
+            IEntityType entityType = AssertEntity(collectionType);
+            IIndex index = Assert.Single(
+                entityType.GetIndexes(),
+                candidate =>
+                    candidate.Properties.Select(property => property.Name)
+                        .SequenceEqual(
+                            [
+                                nameof(WindowsProcessorInventory.ManagedServerId),
+                                nameof(WindowsProcessorInventory.StableSourceKey),
+                            ]));
+            Assert.True(index.IsUnique);
+        }
+
+        IProperty[] inventoryStrings = Mappings.Keys
+            .Where(type => type.Name.StartsWith("Windows", StringComparison.Ordinal))
+            .Select(AssertEntity)
+            .SelectMany(entity => entity.GetProperties())
+            .Where(property => property.ClrType == typeof(string))
+            .ToArray();
+
+        Assert.NotEmpty(inventoryStrings);
+        Assert.All(
+            inventoryStrings,
+            property => Assert.True(property.GetMaxLength() > 0));
     }
 
     [Theory]
@@ -114,7 +162,9 @@ public sealed class OperationsModelTests
                 "CK_ManagedServer_WinRmHttpPort_Range",
                 "CK_ManagedServer_WinRmHttpsPort_Range",
                 "CK_ManagedServer_WinRmProbeTimeout_Positive",
-                "CK_ManagedServer_WinRmTransportMode"
+                "CK_ManagedServer_WinRmTransportMode",
+                "CK_WindowsIpv4AddressInventory_PrefixLength_Range",
+                "CK_WindowsMemoryInventory_TotalPhysicalMemoryBytes_NonNegative"
             },
             names);
     }

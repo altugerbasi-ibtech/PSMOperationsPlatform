@@ -59,12 +59,15 @@ internal sealed class WindowsCollectorCycle(
             },
             async (target, targetCancellationToken) =>
             {
+                IWinRmCommandSession? session = null;
                 try
                 {
+                    Guid inventoryCorrelationId = Guid.NewGuid();
                     WindowsConnectivityProbeResult result =
                         await connectivityProbe.ProbeAsync(
                             target,
                             targetCancellationToken);
+                    session = result.Session;
 
                     if (result.FinalFailureCategory ==
                         WinRmFailureCategory.Cancelled)
@@ -73,7 +76,7 @@ internal sealed class WindowsCollectorCycle(
                         return;
                     }
 
-                    results.Add(result);
+                    results.Add(result with { Session = null });
                     if (result.IsReachable)
                     {
                         WindowsCollectorLog.TargetProbeSucceeded(
@@ -100,6 +103,9 @@ internal sealed class WindowsCollectorCycle(
                     IConnectivityResultPersistence persistence =
                         persistenceScope.ServiceProvider
                             .GetRequiredService<IConnectivityResultPersistence>();
+                    IWindowsInventoryOrchestrator inventoryOrchestrator =
+                        persistenceScope.ServiceProvider
+                            .GetRequiredService<IWindowsInventoryOrchestrator>();
                     ConnectivityPersistenceResult persistenceResult =
                         await persistence.ApplyAsync(
                             target,
@@ -107,6 +113,22 @@ internal sealed class WindowsCollectorCycle(
                             targetCancellationToken);
                     persistenceResults.Add(persistenceResult);
                     LogPersistenceOutcome(logger, persistenceResult);
+
+                    if (persistenceResult.Outcome ==
+                        ConnectivityPersistenceOutcome.AppliedSuccess)
+                    {
+                        if (session is null)
+                        {
+                            throw new InvalidOperationException(
+                                "A successful WinRM probe did not return its session.");
+                        }
+
+                        await inventoryOrchestrator.ExecuteAsync(
+                            target,
+                            session,
+                            inventoryCorrelationId,
+                            targetCancellationToken);
+                    }
                 }
                 catch (OperationCanceledException)
                     when (targetCancellationToken.IsCancellationRequested)
@@ -120,6 +142,24 @@ internal sealed class WindowsCollectorCycle(
                         target.TargetId,
                         target.TransportMode.ToString(),
                         exception.GetType().Name);
+                }
+                finally
+                {
+                    if (session is not null)
+                    {
+                        try
+                        {
+                            await session.DisposeAsync();
+                        }
+                        catch (Exception exception)
+                        {
+                            WindowsCollectorLog.TargetProbeUnexpected(
+                                logger,
+                                target.TargetId,
+                                target.TransportMode.ToString(),
+                                exception.GetType().Name);
+                        }
+                    }
                 }
             });
 

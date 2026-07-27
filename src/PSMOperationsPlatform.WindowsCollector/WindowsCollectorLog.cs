@@ -21,6 +21,11 @@ internal static partial class WindowsCollectorLog
     internal const int ConnectivityResultPersistFailedId = 2343;
     internal const int ConnectivityPersistenceSummaryId = 2344;
     internal const int ConnectivityPersistenceFailuresId = 2345;
+    internal const int InventoryStartedId = 2350;
+    internal const int InventoryModuleStartedId = 2351;
+    internal const int InventoryModuleCompletedId = 2352;
+    internal const int InventoryModuleFailedId = 2353;
+    internal const int InventoryCompletedId = 2354;
 
     [LoggerMessage(
         EventId = CollectorStartedId,
@@ -189,4 +194,64 @@ internal static partial class WindowsCollectorLog
     internal static partial void ConnectivityPersistenceFailures(
         ILogger logger,
         int failedCount);
+
+    [LoggerMessage(
+        EventId = InventoryStartedId,
+        EventName = "WindowsInventoryStarted",
+        Level = LogLevel.Debug,
+        Message = "Windows inventory orchestration started. TargetId={TargetId} InventoryCorrelationId={InventoryCorrelationId} ModuleCount={ModuleCount}")]
+    internal static partial void InventoryStarted(
+        ILogger logger,
+        Guid targetId,
+        Guid inventoryCorrelationId,
+        int moduleCount);
+
+    [LoggerMessage(
+        EventId = InventoryModuleStartedId,
+        EventName = "WindowsInventoryModuleStarted",
+        Level = LogLevel.Debug,
+        Message = "Windows inventory module started. TargetId={TargetId} InventoryCorrelationId={InventoryCorrelationId} ModuleKind={ModuleKind}")]
+    internal static partial void InventoryModuleStarted(
+        ILogger logger,
+        Guid targetId,
+        Guid inventoryCorrelationId,
+        string moduleKind);
+
+    [LoggerMessage(
+        EventId = InventoryModuleCompletedId,
+        EventName = "WindowsInventoryModuleCompleted",
+        Level = LogLevel.Debug,
+        Message = "Windows inventory module completed. TargetId={TargetId} InventoryCorrelationId={InventoryCorrelationId} ModuleKind={ModuleKind} DurationMilliseconds={DurationMilliseconds}")]
+    internal static partial void InventoryModuleCompleted(
+        ILogger logger,
+        Guid targetId,
+        Guid inventoryCorrelationId,
+        string moduleKind,
+        double durationMilliseconds);
+
+    [LoggerMessage(
+        EventId = InventoryModuleFailedId,
+        EventName = "WindowsInventoryModuleFailed",
+        Level = LogLevel.Warning,
+        Message = "Windows inventory module failed safely. TargetId={TargetId} InventoryCorrelationId={InventoryCorrelationId} ModuleKind={ModuleKind} FailureCategory={FailureCategory}")]
+    internal static partial void InventoryModuleFailed(
+        ILogger logger,
+        Guid targetId,
+        Guid inventoryCorrelationId,
+        string moduleKind,
+        string failureCategory);
+
+    [LoggerMessage(
+        EventId = InventoryCompletedId,
+        EventName = "WindowsInventoryCompleted",
+        Level = LogLevel.Debug,
+        Message = "Windows inventory orchestration completed. TargetId={TargetId} InventoryCorrelationId={InventoryCorrelationId} IsSuccessful={IsSuccessful} ModuleCount={ModuleCount} FailedModuleCount={FailedModuleCount} DurationMilliseconds={DurationMilliseconds}")]
+    internal static partial void InventoryCompleted(
+        ILogger logger,
+        Guid targetId,
+        Guid inventoryCorrelationId,
+        bool isSuccessful,
+        int moduleCount,
+        int failedModuleCount,
+        double durationMilliseconds);
 }

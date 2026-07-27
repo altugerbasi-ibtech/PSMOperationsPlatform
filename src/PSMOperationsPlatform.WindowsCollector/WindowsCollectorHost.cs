@@ -39,6 +39,18 @@ public static class WindowsCollectorHost
         builder.Services.AddSingleton<IWinRmTransportClient, WinRmTransportClient>();
         builder.Services.AddSingleton<IWindowsConnectivityProbe, WindowsConnectivityProbe>();
         builder.Services.AddScoped<
+            IWindowsInventoryOrchestrator,
+            WindowsInventoryOrchestrator>();
+        builder.Services.AddScoped<IWindowsInventoryModule, ComputerInventoryModule>();
+        builder.Services.AddScoped<
+            IWindowsInventoryModule,
+            OperatingSystemInventoryModule>();
+        builder.Services.AddScoped<IWindowsInventoryModule, MemoryInventoryModule>();
+        builder.Services.AddScoped<IWindowsInventoryModule, ProcessorInventoryModule>();
+        builder.Services.AddScoped<IWindowsInventoryModule, DiskInventoryModule>();
+        builder.Services.AddScoped<IWindowsInventoryModule, VolumeInventoryModule>();
+        builder.Services.AddScoped<IWindowsInventoryModule, NetworkInventoryModule>();
+        builder.Services.AddScoped<
             IManagedServerConnectivityStore,
             ManagedServerConnectivityStore>();
         builder.Services.AddScoped<

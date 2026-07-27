@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using PSMOperationsPlatform.Domain.Enums;
@@ -123,6 +124,123 @@ public sealed class WindowsCollectorCycleTests
         Assert.Equal(2, persistence.Attempts);
     }
 
+    [Fact]
+    public async Task ParallelTargetsResolveInventoryOrchestratorsFromSeparateScopes()
+    {
+        var instances = new ConcurrentBag<ScopeTrackingInventoryOrchestrator>();
+        var services = new ServiceCollection();
+        services.AddScoped<IConnectivityResultPersistence, SuccessfulPersistence>();
+        services.AddScoped<IWindowsInventoryOrchestrator>(_ =>
+        {
+            var instance = new ScopeTrackingInventoryOrchestrator();
+            instances.Add(instance);
+            return instance;
+        });
+        using ServiceProvider provider = services.BuildServiceProvider();
+        var cycle = new WindowsCollectorCycle(
+            new StaticTargetProvider([Target(1), Target(2)]),
+            new SuccessfulProbe(),
+            provider.GetRequiredService<IServiceScopeFactory>(),
+            TimeProvider.System,
+            NullLogger<WindowsCollectorCycle>.Instance);
+
+        await cycle.RunAsync(CancellationToken.None);
+
+        Assert.Equal(2, instances.Count);
+        Assert.All(instances, instance => Assert.Equal(1, instance.Attempts));
+    }
+
+    [Fact]
+    public async Task SuccessfulSessionIsDisposedOnceAfterEmptyInventory()
+    {
+        var session = new CountingSession();
+        var inventory = new CapturingInventoryOrchestrator();
+        var cycle = new WindowsCollectorCycle(
+            new StaticTargetProvider([Target(1)]),
+            new SessionProbe(session),
+            CreateScopeFactory(inventory: inventory),
+            TimeProvider.System,
+            NullLogger<WindowsCollectorCycle>.Instance);
+
+        await cycle.RunAsync(CancellationToken.None);
+
+        Assert.Equal(1, inventory.Attempts);
+        Assert.Same(session, inventory.Session);
+        Assert.Equal(1, session.DisposeCount);
+    }
+
+    [Fact]
+    public async Task PersistenceRejectionDisposesSessionWithoutInventory()
+    {
+        var session = new CountingSession();
+        var inventory = new CapturingInventoryOrchestrator();
+        var cycle = new WindowsCollectorCycle(
+            new StaticTargetProvider([Target(1)]),
+            new SessionProbe(session),
+            CreateScopeFactory(new SkippedPersistence(), inventory),
+            TimeProvider.System,
+            NullLogger<WindowsCollectorCycle>.Instance);
+
+        await cycle.RunAsync(CancellationToken.None);
+
+        Assert.Equal(0, inventory.Attempts);
+        Assert.Equal(1, session.DisposeCount);
+    }
+
+    [Fact]
+    public async Task InventoryFailureDisposesSuccessfulSessionOnce()
+    {
+        var session = new CountingSession();
+        var cycle = new WindowsCollectorCycle(
+            new StaticTargetProvider([Target(1)]),
+            new SessionProbe(session),
+            CreateScopeFactory(inventory: new FailingInventoryOrchestrator()),
+            TimeProvider.System,
+            NullLogger<WindowsCollectorCycle>.Instance);
+
+        await cycle.RunAsync(CancellationToken.None);
+
+        Assert.Equal(1, session.DisposeCount);
+    }
+
+    [Fact]
+    public async Task InventoryCancellationDisposesSuccessfulSessionOnce()
+    {
+        var session = new CountingSession();
+        using var cancellation = new CancellationTokenSource();
+        var cycle = new WindowsCollectorCycle(
+            new StaticTargetProvider([Target(1)]),
+            new SessionProbe(session),
+            CreateScopeFactory(
+                inventory: new CancellingInventoryOrchestrator(cancellation)),
+            TimeProvider.System,
+            NullLogger<WindowsCollectorCycle>.Instance);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => cycle.RunAsync(cancellation.Token));
+
+        Assert.Equal(1, session.DisposeCount);
+    }
+
+    [Fact]
+    public async Task CleanupFailureDoesNotReplaceInventoryCancellation()
+    {
+        var session = new CountingSession(throwOnDispose: true);
+        using var cancellation = new CancellationTokenSource();
+        var cycle = new WindowsCollectorCycle(
+            new StaticTargetProvider([Target(1)]),
+            new SessionProbe(session),
+            CreateScopeFactory(
+                inventory: new CancellingInventoryOrchestrator(cancellation)),
+            TimeProvider.System,
+            NullLogger<WindowsCollectorCycle>.Instance);
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => cycle.RunAsync(cancellation.Token));
+
+        Assert.Equal(1, session.DisposeCount);
+    }
+
     private static WindowsCollectorCycle CreateCycle(
         int targetCount,
         IWindowsConnectivityProbe probe) =>
@@ -137,7 +255,8 @@ public sealed class WindowsCollectorCycleTests
             NullLogger<WindowsCollectorCycle>.Instance);
 
     private static IServiceScopeFactory CreateScopeFactory(
-        IConnectivityResultPersistence? persistence = null)
+        IConnectivityResultPersistence? persistence = null,
+        IWindowsInventoryOrchestrator? inventory = null)
     {
         var services = new ServiceCollection();
         if (persistence is null)
@@ -149,6 +268,17 @@ public sealed class WindowsCollectorCycleTests
         else
         {
             services.AddSingleton(persistence);
+        }
+
+        if (inventory is null)
+        {
+            services.AddScoped<
+                IWindowsInventoryOrchestrator,
+                NoOpInventoryOrchestrator>();
+        }
+        else
+        {
+            services.AddSingleton(inventory);
         }
 
         ServiceProvider provider = services.BuildServiceProvider();
@@ -306,7 +436,8 @@ public sealed class WindowsCollectorCycleTests
                     WinRmTransport.Https,
                     WinRmFailureCategory.None,
                     TimeSpan.Zero,
-                    DateTimeOffset.MinValue));
+                    DateTimeOffset.MinValue,
+                    new TestSession()));
     }
 
     private sealed class SuccessfulPersistence : IConnectivityResultPersistence
@@ -348,6 +479,157 @@ public sealed class WindowsCollectorCycleTests
                     0,
                     probeResult.CompletedAt.DateTime.AddMinutes(1)));
         }
+    }
+
+    private sealed class NoOpInventoryOrchestrator
+        : IWindowsInventoryOrchestrator
+    {
+        public Task<WindowsInventoryOrchestrationResult> ExecuteAsync(
+            WindowsTarget target,
+            IWinRmCommandSession session,
+            Guid correlationId,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(
+                new WindowsInventoryOrchestrationResult(target.TargetId, []));
+    }
+
+    private sealed class ScopeTrackingInventoryOrchestrator
+        : IWindowsInventoryOrchestrator
+    {
+        public int Attempts { get; private set; }
+
+        public Task<WindowsInventoryOrchestrationResult> ExecuteAsync(
+            WindowsTarget target,
+            IWinRmCommandSession session,
+            Guid correlationId,
+            CancellationToken cancellationToken)
+        {
+            Attempts++;
+            return Task.FromResult(
+                new WindowsInventoryOrchestrationResult(target.TargetId, []));
+        }
+    }
+
+    private sealed class FailingInventoryOrchestrator
+        : IWindowsInventoryOrchestrator
+    {
+        public Task<WindowsInventoryOrchestrationResult> ExecuteAsync(
+            WindowsTarget target,
+            IWinRmCommandSession session,
+            Guid correlationId,
+            CancellationToken cancellationToken) =>
+            throw new InvalidOperationException("SENSITIVE-SENTINEL");
+    }
+
+    private sealed class CancellingInventoryOrchestrator(
+        CancellationTokenSource cancellationSource)
+        : IWindowsInventoryOrchestrator
+    {
+        public Task<WindowsInventoryOrchestrationResult> ExecuteAsync(
+            WindowsTarget target,
+            IWinRmCommandSession session,
+            Guid correlationId,
+            CancellationToken cancellationToken)
+        {
+            cancellationSource.Cancel();
+            cancellationToken.ThrowIfCancellationRequested();
+            throw new InvalidOperationException("Unreachable.");
+        }
+    }
+
+    private sealed class TestSession : IWinRmCommandSession
+    {
+        public bool IsUsable => true;
+
+        public Task OpenAsync(CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+
+        public Task<IReadOnlyList<WinRmCommandRecord>> InvokeAsync(
+            WinRmCommandDefinition command,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<WinRmCommandRecord>>([]);
+
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    }
+
+    private sealed class CountingSession(bool throwOnDispose = false)
+        : IWinRmCommandSession
+    {
+        private int disposeCount;
+
+        public int DisposeCount => Volatile.Read(ref disposeCount);
+
+        public bool IsUsable => DisposeCount == 0;
+
+        public Task OpenAsync(CancellationToken cancellationToken) =>
+            Task.CompletedTask;
+
+        public Task<IReadOnlyList<WinRmCommandRecord>> InvokeAsync(
+            WinRmCommandDefinition command,
+            CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<WinRmCommandRecord>>([]);
+
+        public ValueTask DisposeAsync()
+        {
+            Interlocked.Increment(ref disposeCount);
+            if (throwOnDispose)
+            {
+                throw new InvalidOperationException(
+                    "Injected cleanup failure.");
+            }
+
+            return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed class SessionProbe(IWinRmCommandSession session)
+        : IWindowsConnectivityProbe
+    {
+        public Task<WindowsConnectivityProbeResult> ProbeAsync(
+            WindowsTarget target,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(
+                new WindowsConnectivityProbeResult(
+                    target.TargetId,
+                    true,
+                    [WinRmTransport.Https],
+                    WinRmTransport.Https,
+                    WinRmFailureCategory.None,
+                    TimeSpan.Zero,
+                    DateTimeOffset.MinValue,
+                    session));
+    }
+
+    private sealed class CapturingInventoryOrchestrator
+        : IWindowsInventoryOrchestrator
+    {
+        public int Attempts { get; private set; }
+
+        public IWinRmCommandSession? Session { get; private set; }
+
+        public Task<WindowsInventoryOrchestrationResult> ExecuteAsync(
+            WindowsTarget target,
+            IWinRmCommandSession session,
+            Guid correlationId,
+            CancellationToken cancellationToken)
+        {
+            Attempts++;
+            Session = session;
+            return Task.FromResult(
+                new WindowsInventoryOrchestrationResult(target.TargetId, []));
+        }
+    }
+
+    private sealed class SkippedPersistence : IConnectivityResultPersistence
+    {
+        public Task<ConnectivityPersistenceResult> ApplyAsync(
+            WindowsTarget target,
+            WindowsConnectivityProbeResult probeResult,
+            CancellationToken cancellationToken) =>
+            Task.FromResult(
+                new ConnectivityPersistenceResult(
+                    target.TargetId,
+                    ConnectivityPersistenceOutcome.SkippedStale));
     }
 
     private static WindowsConnectivityProbeResult Success(Guid targetId) =>

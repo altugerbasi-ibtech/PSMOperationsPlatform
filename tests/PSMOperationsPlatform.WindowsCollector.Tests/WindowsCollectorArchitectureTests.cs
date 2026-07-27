@@ -138,6 +138,25 @@ public sealed class WindowsCollectorArchitectureTests
         }
     }
 
+    [Fact]
+    public void InventoryFoundationHasNoPersistenceOrDynamicDiscovery()
+    {
+        string source = File.ReadAllText(
+            Path.Combine(
+                FindRepositoryRoot(),
+                "src",
+                "PSMOperationsPlatform.WindowsCollector",
+                "WindowsInventoryOrchestration.cs"));
+
+        Assert.DoesNotContain("OperationsDbContext", source);
+        Assert.DoesNotContain("IServiceProvider", source);
+        Assert.DoesNotContain("IWinRmSessionFactory", source);
+        Assert.DoesNotContain("Assembly", source);
+        Assert.DoesNotContain("Reflection", source);
+        Assert.DoesNotContain("Activator", source);
+        Assert.DoesNotContain("SaveChanges", source);
+    }
+
     private static string ReadProjectSource(params string[] parts)
     {
         string path = Path.Combine([FindRepositoryRoot(), .. parts]);

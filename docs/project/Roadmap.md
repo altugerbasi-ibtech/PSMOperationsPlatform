@@ -1,6 +1,6 @@
 ---
 title: Product Roadmap
-version: 1.5.0
+version: 1.13.0
 status: Draft
 owner: Product
 last_updated: 2026-07-27
@@ -26,9 +26,11 @@ product: PSM Operations Platform
 2. WP-002 — Core Persistence Layer — Completed
 3. WP-003 — Configuration Management — Completed
 4. WP-004 — Windows Collector Foundation and Target Connectivity — Completed
-5. Windows OS inventory — Planned; number not assigned
+5. WP-005 — Windows Inventory Framework — Completed; final architecture review
+   passed
 6. Windows Service discovery/inventory — Planned; number not assigned
-7. Durable command queue behavior — Planned; number not assigned
+7. DNS Alias Discovery — Future separate Work Package; number not assigned
+8. Durable command queue behavior — Planned; number not assigned
 
 The older Architecture Baseline list assigns WP-004 to Durable Command Queue.
 That entry is obsolete and requires an approved baseline revision. Remaining
@@ -38,6 +40,14 @@ future Work Packages are not silently renumbered here.
 
 | Version | Date | Description |
 |---|---|---|
+| 1.13.0 | 2026-07-27 | Passed WP-005 final architecture review |
+| 1.12.0 | 2026-07-27 | Completed WP-005.7 Network Adapter and IPv4 inventory |
+| 1.11.0 | 2026-07-27 | Completed WP-005.6 Disk and Volume inventory |
+| 1.10.0 | 2026-07-27 | Completed WP-005.5 Processor inventory |
+| 1.9.0 | 2026-07-27 | Completed WP-005.4 core system inventory |
+| 1.8.0 | 2026-07-27 | Completed WP-005.3 current-state persistence foundation |
+| 1.7.0 | 2026-07-27 | Completed WP-005.2 and advanced to current-state persistence foundation |
+| 1.6.0 | 2026-07-27 | Added WP-005 sprint plan and separate future DNS Alias Discovery |
 | 1.5.0 | 2026-07-27 | Completed WP-004 and advanced delivery to Windows OS inventory planning |
 | 1.4.0 | 2026-07-27 | Recorded WP-004.5 persistence/backoff completion and final review next |
 | 1.3.0 | 2026-07-27 | Recorded WP-004.3 target provider and eligibility completion |
