@@ -1,14 +1,33 @@
 ---
 title: Deployment Architecture
-version: 1.0.0
+version: 1.0.1
 status: Approved
 owner: Architecture
-last_updated: 2026-07-26
+last_updated: 2026-07-27
 product: PSM Operations Platform
 ---
 # Deployment Architecture
 
 Minimum components: IIS-hosted web application, Windows Collector service, SQL Collector service and central SQL Server database. Collectors may run together or separately. Target network flow is outbound from collectors to managed systems; targets do not initiate connections.
+
+## Host startup configuration
+
+Runtime host application overrides use the WP-003 prefix:
+
+```text
+PSM__ConnectionStrings__OperationsDatabase
+```
+
+The standard environment provider maps this name to
+`ConnectionStrings:OperationsDatabase`. Current production hosts do not yet
+select the OperationsDatabase capability, so the value becomes mandatory only
+when a later Work Package adds a real persistence consumer and explicitly calls
+`AddOperationsDatabaseConfiguration`.
+
+The provider order from lowest to highest precedence is base JSON, environment
+JSON, Development User Secrets, `PSM__` environment variables and command-line
+arguments. User Secrets are not loaded outside Development. Runtime configuration
+does not reload.
 
 ## Controlled database migrations
 
@@ -27,6 +46,13 @@ dotnet ef migrations add <MigrationName> `
   --context OperationsDbContext `
   --output-dir Persistence\Migrations
 ```
+
+`ConnectionStrings__OperationsDatabase` above is the existing WP-002
+design-time factory input for controlled EF tooling; it is not a production host
+configuration prefix. The transport values shown are deployment examples, not
+WP-003 validation requirements. WP-003 does not mandate `Encrypt=True`, does not
+mandate `TrustServerCertificate=False` and does not prohibit
+`TrustServerCertificate=True`.
 
 Review the generated migration and produce an idempotent deployment script:
 
@@ -55,3 +81,10 @@ approved deployment pipeline or operator tooling. They must record migration
 start, completion and failure without recording connection strings, SQL text or
 credentials. Runtime `OperationsDbContext` logging covers persistence operations;
 it does not replace deployment-side migration logging.
+
+## Revision History
+
+| Version | Date | Description |
+|---|---|---|
+| 1.0.0 | 2026-07-26 | Initial deployment architecture |
+| 1.0.1 | 2026-07-27 | Documented WP-003 host configuration and design-time migration boundary |

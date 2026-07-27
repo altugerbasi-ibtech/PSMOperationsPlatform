@@ -1,5 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
+  <PropertyGroup>
+    <UserSecretsId>PSMOperationsPlatform.Web</UserSecretsId>
+  </PropertyGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\PSMOperationsPlatform.Application\PSMOperationsPlatform.Application.csproj" />
     <ProjectReference Include="..\PSMOperationsPlatform.Infrastructure\PSMOperationsPlatform.Infrastructure.csproj" />

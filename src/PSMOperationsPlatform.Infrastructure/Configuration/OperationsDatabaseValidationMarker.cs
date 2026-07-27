@@ -1,0 +1,5 @@
+namespace PSMOperationsPlatform.Infrastructure.Configuration;
+
+internal sealed class OperationsDatabaseValidationMarker;
+
+internal sealed class OperationsDatabaseValidationRegistration;

@@ -1,6 +1,14 @@
 # Changelog
 
 ## Unreleased
+- Complete WP-003 configuration management with deterministic JSON, Development
+  User Secrets, `PSM__` environment and command-line provider composition.
+- Add capability-selected OperationsDatabase startup validation for Windows
+  Integrated Authentication with secret-free failure codes.
+- Add one allowlisted post-validation startup diagnostic event without
+  connection target details or production-host database registration.
+- Add composition, validation, diagnostics, redaction and configuration
+  architecture tests.
 - Implement WP-002 core domain entities and EF Core 10 SQL Server persistence model.
 - Add the `InitialCreate` migration for six schemas and seven tables.
 - Add domain, model metadata, migration script and SQLite persistence tests.

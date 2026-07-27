@@ -1,14 +1,14 @@
 ---
 title: PSM Operations Platform — Architecture Baseline
-version: 1.0.0
+version: 1.0.3
 status: Draft
 owner: Architecture
-last_updated: 2026-07-26
+last_updated: 2026-07-27
 product: PSM Operations Platform
-baseline_scope: WP-001 completed; WP-002 implemented
+baseline_scope: WP-001 completed; WP-002 implemented; WP-003 completed
 ---
 
-# PSM Operations Platform — Architecture Baseline v1.0
+# PSM Operations Platform — Architecture Baseline v1.0.3
 
 ## 1. Purpose
 
@@ -29,7 +29,13 @@ This baseline represents the architecture at the following delivery point:
   persistence tests are present. Collector implementations, inventory logic,
   Web CRUD and command workers are not yet implemented.
 - ADR-005 — Türkiye Local Time Standard is accepted.
-- ADR-006 — Database Design Principles is planned and must be accepted before WP-003 implementation.
+- WP-003 — Configuration Management is completed.
+- WP-003 is limited to host startup configuration and does not reopen the
+  completed WP-002 persistence design.
+- WP-003 implements the standard provider order, `PSM__` environment mapping,
+  capability-selected OperationsDatabase validation and one safe post-validation
+  startup event. Current production hosts compose providers but do not select
+  the database capability because they do not yet consume persistence.
 
 ## 3. Product vision
 
@@ -48,7 +54,7 @@ The platform is intended for internal enterprise Windows operations, initially t
 - Windows Event Logs
 - Performance Counters
 - Certificates
-- Central configuration
+- Future runtime-managed product configuration
 - Monitoring and alerts
 - Auditing
 - Durable operational commands
@@ -157,7 +163,7 @@ Web Application
    |
    v
 Central SQL Server
-   |-- configuration
+   |-- future runtime-managed product configuration
    |-- inventory
    |-- monitoring
    |-- alerts
@@ -189,7 +195,7 @@ Responsibilities:
 - Operator user interface
 - Windows Authentication entry point
 - Authorization entry point
-- Configuration management
+- Future runtime-managed product configuration management
 - Inventory and monitoring presentation
 - Command submission to the durable SQL queue
 - Audit presentation
@@ -259,7 +265,7 @@ Restrictions:
 Responsibilities:
 
 - Durable application data
-- Configuration
+- Future runtime-managed product configuration; not host startup configuration
 - Inventory
 - Monitoring
 - Alerts
@@ -446,7 +452,8 @@ Initial logical schemas:
 - `operations`
 - `security`
 - `audit`
-- `configuration`
+- `configuration` (future runtime-managed product configuration; not WP-003
+  host startup configuration)
 
 Collector identities receive only the permissions required for their function.
 
@@ -485,29 +492,26 @@ Continuously growing monitoring and collection tables require explicit retention
 
 ### 11.5 Database design baseline status
 
-ADR-006 — Database Design Principles must define:
+WP-002 — Core Persistence Layer completed the current database foundation.
+Its approved task, ER model, migration and validation evidence define:
 
-- primary-key strategy
-- naming conventions
-- schema ownership
-- foreign-key policy
-- nullability
-- string lengths
-- `rowversion`
-- identity versus sequence
-- audit columns
-- soft-delete policy
-- index and constraint naming
-- transaction boundaries
-- migration and rollback expectations
+- the EF Core SQL Server provider and `OperationsDbContext`;
+- entity mappings, schemas, tables, constraints and indexes;
+- migration and controlled deployment behavior;
+- concurrency behavior;
+- persistence exceptions, error mapping and logging.
 
-WP-003 must not begin before ADR-006 is accepted.
+The earlier planned ADR-006 reference duplicated decisions already delivered
+and documented by WP-002. No ADR-006 exists in the repository, and it is not a
+WP-003 prerequisite. WP-003 SHALL NOT redesign the persistence model, change
+migrations or schemas, or redefine `OperationsDbContext` behavior.
 
 ## 12. Configuration and infrastructure direction
 
-This section records future configuration and infrastructure direction. It is not
-part of WP-002 — Core Persistence Layer; the approved WP-002 implementation
-boundary is defined by `docs/tasks/WP-002-Core-Persistence-Layer.md`.
+This section records host startup configuration direction. WP-002 owns SQL
+Server persistence behavior; WP-003 owns how each host composes, binds,
+validates and safely reports its runtime configuration. SQL-backed runtime
+product configuration remains future scope and is not part of WP-003.
 
 ### 12.1 Configuration
 
@@ -515,8 +519,25 @@ Standard .NET configuration sources:
 
 1. `appsettings.json`
 2. `appsettings.{Environment}.json`
-3. Environment variables
-4. Command-line arguments where supported
+3. Development User Secrets, only in Development
+4. `PSM__`-prefixed environment variables
+5. Command-line arguments
+
+The list is ordered from lowest to highest precedence. Environment variables
+override JSON and Development User Secrets. Command-line arguments have the
+highest precedence. Production does not load User Secrets. WP-003 follows the
+standard .NET provider precedence model and does not introduce a custom
+precedence mechanism or configuration parser.
+
+The standard environment provider removes the `PSM__` prefix and treats double
+underscores as section separators. For example,
+`PSM__SomeSection__SomeValue` maps to `SomeSection:SomeValue`. This mapping is
+illustrative and does not add an options model or property to WP-003.
+`PSM__ConnectionStrings__OperationsDatabase` is the concrete WP-003 mapping.
+Environment-variable name casing can differ by operating system; deployments
+SHOULD use the documented casing consistently. Implementation tests SHALL
+verify prefix and separator behavior. Exact bootstrap API use SHALL be selected
+after reviewing each existing host composition root.
 
 Initial environments:
 
@@ -532,11 +553,22 @@ Initial environments:
 - Small and coherent configuration sections
 - No custom configuration framework
 
-Expected sections:
+WP-003 implements no public options model. No real options property remains
+after the named OperationsDatabase connection is kept outside options.
+`ConnectionStrings:OperationsDatabase` is read through the standard named
+connection API and validated only by hosts that select the operations database
+configuration capability. Current Web, Windows Collector and SQL Collector
+hosts do not yet consume persistence and do not select this capability.
 
-- `Database`
-- `Collector`
-- `HealthChecks`
+`PlatformOptions`, `CollectorRuntimeOptions`, `HeartbeatOptions`,
+`CommandQueueOptions`, `InventoryOptions` and `RetentionOptions` are not WP-003
+options. They may be introduced only by a later Work Package with a concrete
+consumer and behavior requirement.
+
+WP-003 startup validation covers connection-string presence, SQL Server syntax
+and Windows Integrated Authentication mode only where the capability is
+registered. The connection string is never stored in an options property. This
+does not redefine SQL Server persistence behavior.
 
 ### 12.3 Logging
 
@@ -880,11 +912,10 @@ It is not complete when:
 
 1. WP-001 — Solution Skeleton — Completed
 2. WP-002 — Core Persistence Layer — Implemented
-3. ADR-006 — Database Design Principles — Planned
-4. WP-003 — Database Foundation — Planned
-5. WP-004 — Durable Command Queue — Planned
-6. WP-005 — Collector Framework — Planned
-7. WP-006 — First production-value collector feature — Planned
+3. WP-003 — Configuration Management — Completed
+4. WP-004 — Durable Command Queue — Planned
+5. WP-005 — Collector Framework — Planned
+6. WP-006 — First production-value collector feature — Planned
 
 IIS discovery and Windows Service inventory are current candidates for the first production-value collector feature.
 
@@ -896,10 +927,6 @@ IIS discovery and Windows Service inventory are current candidates for the first
 - ADR-002 — SQL Durable Command Queue
 - ADR-003 — Collector Separation by Security Boundary
 - ADR-005 — Türkiye Local Time Standard
-
-### Planned
-
-- ADR-006 — Database Design Principles
 
 The repository currently contains ADR-001 through ADR-003. ADR-005 must be added to the repository if it has not already been committed.
 
@@ -957,6 +984,7 @@ Primary repository references:
 - `docs/adr/ADR-003-Collector-Separation-by-Security-Boundary.md`
 - `docs/tasks/WP-001-Solution-Skeleton.md`
 - `docs/tasks/WP-002-Core-Persistence-Layer.md`
+- `docs/tasks/WP-003-Configuration-Management.md`
 - `docs/project/Principles.md`
 - `AGENTS.md`
 
