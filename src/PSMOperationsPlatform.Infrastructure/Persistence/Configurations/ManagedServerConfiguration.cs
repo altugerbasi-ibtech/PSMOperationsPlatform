@@ -33,6 +33,15 @@ public sealed class ManagedServerConfiguration : IEntityTypeConfiguration<Manage
                     "CK_ManagedServer_ConnectivityFailures_NonNegative",
                     "[ConsecutiveConnectivityFailures] >= 0");
                 table.HasCheckConstraint(
+                    "CK_ManagedServer_InventoryFailures_NonNegative",
+                    "[ConsecutiveInventoryFailures] >= 0");
+                table.HasCheckConstraint(
+                    "CK_ManagedServer_InventoryVersion_NonNegative",
+                    "[InventoryVersion] >= 0");
+                table.HasCheckConstraint(
+                    "CK_ManagedServer_LastInventoryFailureCategory",
+                    "[LastInventoryFailureCategory] IS NULL OR [LastInventoryFailureCategory] IN ('CollectionFailure', 'ParsingFailure', 'ValidationFailure', 'PersistenceFailure', 'Timeout', 'Unexpected')");
+                table.HasCheckConstraint(
                     "CK_ManagedServer_LastSuccessfulTransport",
                     "[LastSuccessfulTransport] IS NULL OR [LastSuccessfulTransport] IN ('Https', 'Http')");
                 table.HasCheckConstraint(
@@ -72,6 +81,20 @@ public sealed class ManagedServerConfiguration : IEntityTypeConfiguration<Manage
         builder.Property(entity => entity.LastConnectivityFailureCategory)
             .HasConversion<string>()
             .HasMaxLength(40);
+        builder.Property(entity => entity.LastInventoryAttemptAt)
+            .HasColumnType("datetime2(7)");
+        builder.Property(entity => entity.LastInventorySuccessAt)
+            .HasColumnType("datetime2(7)");
+        builder.Property(entity => entity.NextInventoryAttemptAt)
+            .HasColumnType("datetime2(7)");
+        builder.Property(entity => entity.ConsecutiveInventoryFailures)
+            .HasDefaultValue(0)
+            .IsRequired();
+        builder.Property(entity => entity.LastInventoryFailureCategory)
+            .HasMaxLength(80);
+        builder.Property(entity => entity.InventoryVersion)
+            .HasDefaultValue(0L)
+            .IsRequired();
         builder.Property(entity => entity.RowVersion)
             .IsRowVersion()
             .IsConcurrencyToken()
@@ -85,5 +108,11 @@ public sealed class ManagedServerConfiguration : IEntityTypeConfiguration<Manage
             entity.NextConnectivityAttemptAt,
         })
             .HasDatabaseName("IX_ManagedServer_Eligibility");
+        builder.HasIndex(entity => new
+        {
+            entity.IsEnabled,
+            entity.NextInventoryAttemptAt,
+        })
+            .HasDatabaseName("IX_ManagedServer_InventoryEligibility");
     }
 }

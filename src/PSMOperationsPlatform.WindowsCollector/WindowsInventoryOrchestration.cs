@@ -4,11 +4,18 @@ internal enum WindowsInventoryModuleKind
 {
     Computer = 100,
     OperatingSystem = 200,
+    Bios = 250,
     Memory = 300,
     Processor = 400,
     Disk = 500,
     Volume = 600,
-    NetworkAdapter = 700
+    NetworkAdapter = 700,
+    Ipv4Address = 800,
+    WindowsRole = 900,
+    WindowsFeature = 1000,
+    IisPlatform = 1100,
+    DotNetPlatform = 1200,
+    PowerShellPlatform = 1300
 }
 
 internal enum WindowsInventoryModuleOutcome

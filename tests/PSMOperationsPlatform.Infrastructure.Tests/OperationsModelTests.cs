@@ -25,7 +25,14 @@ public sealed class OperationsModelTests
             [typeof(WindowsDiskInventory)] = ("inventory", "WindowsDiskInventory"),
             [typeof(WindowsVolumeInventory)] = ("inventory", "WindowsVolumeInventory"),
             [typeof(WindowsNetworkAdapterInventory)] = ("inventory", "WindowsNetworkAdapterInventory"),
-            [typeof(WindowsIpv4AddressInventory)] = ("inventory", "WindowsIpv4AddressInventory")
+            [typeof(WindowsIpv4AddressInventory)] = ("inventory", "WindowsIpv4AddressInventory"),
+            [typeof(ExecutionPlan)] = ("inventory", "ExecutionPlan"),
+            [typeof(ExecutionPlanStep)] = ("inventory", "ExecutionPlanStep"),
+            [typeof(ExecutionPlanExclusion)] = ("inventory", "ExecutionPlanExclusion"),
+            [typeof(ExecutionPlanExclusionCapability)] = ("inventory", "ExecutionPlanExclusionCapability"),
+            [typeof(ExecutionRunStateEntity)] = ("runtime", "ExecutionRunState"),
+            [typeof(ExecutionStepStateEntity)] = ("runtime", "ExecutionStepState"),
+            [typeof(ExecutionAttemptStateEntity)] = ("runtime", "ExecutionAttemptState")
         };
 
     private readonly IModel model = CreateContext()
@@ -40,7 +47,7 @@ public sealed class OperationsModelTests
             IEntityType entityType = AssertEntity(clrType);
             Assert.Equal(schema, entityType.GetSchema());
             Assert.Equal(table, entityType.GetTableName());
-            IKey key = Assert.Single(entityType.GetKeys());
+            IKey key = entityType.FindPrimaryKey()!;
             IProperty id = Assert.Single(key.Properties);
             Assert.Equal(nameof(ManagedServer.Id), id.Name);
             Assert.Equal(ValueGenerated.Never, id.ValueGenerated);
@@ -54,7 +61,7 @@ public sealed class OperationsModelTests
             .SelectMany(entity => entity.GetForeignKeys())
             .ToArray();
 
-        Assert.Equal(15, foreignKeys.Length);
+        Assert.Equal(39, foreignKeys.Length);
         Assert.All(foreignKeys, foreignKey => Assert.Equal(DeleteBehavior.Restrict, foreignKey.DeleteBehavior));
     }
 
@@ -77,6 +84,7 @@ public sealed class OperationsModelTests
         Type[] collectionTypes =
         [
             typeof(WindowsProcessorInventory),
+            typeof(WindowsMemoryInventory),
             typeof(WindowsDiskInventory),
             typeof(WindowsVolumeInventory),
             typeof(WindowsNetworkAdapterInventory),
@@ -86,15 +94,24 @@ public sealed class OperationsModelTests
         foreach (Type collectionType in collectionTypes)
         {
             IEntityType entityType = AssertEntity(collectionType);
+            string keyName = collectionType == typeof(WindowsMemoryInventory)
+                ? nameof(WindowsMemoryInventory.ModuleKey)
+                : collectionType == typeof(WindowsProcessorInventory)
+                    ? nameof(WindowsProcessorInventory.ProcessorKey)
+                    : collectionType == typeof(WindowsDiskInventory)
+                        ? nameof(WindowsDiskInventory.DiskKey)
+                    : collectionType == typeof(WindowsVolumeInventory)
+                        ? nameof(WindowsVolumeInventory.VolumeKey)
+                    : collectionType == typeof(WindowsNetworkAdapterInventory)
+                        ? nameof(WindowsNetworkAdapterInventory.AdapterKey)
+                    : collectionType == typeof(WindowsIpv4AddressInventory)
+                        ? nameof(WindowsIpv4AddressInventory.Ipv4Key)
+                    : nameof(WindowsDiskInventory.StableSourceKey);
             IIndex index = Assert.Single(
                 entityType.GetIndexes(),
-                candidate =>
-                    candidate.Properties.Select(property => property.Name)
-                        .SequenceEqual(
-                            [
-                                nameof(WindowsProcessorInventory.ManagedServerId),
-                                nameof(WindowsProcessorInventory.StableSourceKey),
-                            ]));
+                candidate => candidate.Properties.Select(property => property.Name)
+                    .SequenceEqual(
+                        [nameof(WindowsProcessorInventory.ManagedServerId), keyName]));
             Assert.True(index.IsUnique);
         }
 
@@ -114,6 +131,12 @@ public sealed class OperationsModelTests
     [Theory]
     [InlineData(typeof(CollectorNode))]
     [InlineData(typeof(CommandQueueItem))]
+    [InlineData(typeof(ExecutionPlan))]
+    [InlineData(typeof(ExecutionPlanStep))]
+    [InlineData(typeof(ExecutionPlanExclusion))]
+    [InlineData(typeof(ExecutionRunStateEntity))]
+    [InlineData(typeof(ExecutionStepStateEntity))]
+    [InlineData(typeof(ExecutionAttemptStateEntity))]
     public void CoordinationEntitiesUseSqlServerRowVersion(Type entityType)
     {
         IProperty property = AssertEntity(entityType).FindProperty("RowVersion")!;
@@ -135,7 +158,16 @@ public sealed class OperationsModelTests
             .ToArray();
 
         Assert.NotEmpty(dateProperties);
-        Assert.All(dateProperties, property => Assert.Equal("datetime2(3)", property.GetColumnType()));
+        Assert.All(
+            dateProperties,
+            property => Assert.Equal(
+                property.DeclaringType.ClrType == typeof(ManagedServer)
+                    && property.Name is nameof(ManagedServer.LastInventoryAttemptAt)
+                        or nameof(ManagedServer.LastInventorySuccessAt)
+                        or nameof(ManagedServer.NextInventoryAttemptAt)
+                    ? "datetime2(7)"
+                    : "datetime2(3)",
+                property.GetColumnType()));
     }
 
     [Fact]
@@ -151,20 +183,60 @@ public sealed class OperationsModelTests
             new[]
             {
                 "CK_AuditLog_DetailJson_IsJson",
+                "CK_CollectorDecisionCapabilityReference_InventoryVersion",
+                "CK_CollectorDecisionCapabilityReference_RuleVersion",
+                "CK_CollectorDecisionPlan_SourceInventoryVersion",
+                "CK_CollectorDecisionPlan_Versions",
+                "CK_CollectorStrategyDecision_PriorityOrder",
+                "CK_CollectorStrategyDecision_StrategyVersion",
                 "CK_CommandQueueItem_PayloadJson_IsJson",
                 "CK_CommandQueueItem_Priority_NonNegative",
+                "CK_ExecutionArtifactHistory_Counts",
+                "CK_ExecutionArtifactHistory_Versions",
+                "CK_ExecutionAttemptHistory_Counts",
+                "CK_ExecutionAttemptHistory_Versions",
+                "CK_ExecutionAttemptState_Metrics",
+                "CK_ExecutionAttemptState_Number",
+                "CK_ExecutionPlan_Counts",
+                "CK_ExecutionPlan_SchemaVersions",
+                "CK_ExecutionPlan_SourceInventoryVersion",
+                "CK_ExecutionPlanExclusion_StrategyVersion",
+                "CK_ExecutionPlanExclusionCapability_InventoryVersion",
+                "CK_ExecutionPlanExclusionCapability_RuleVersion",
+                "CK_ExecutionPlanStep_PolicyVersions",
+                "CK_ExecutionPlanStep_PositiveValues",
+                "CK_ExecutionPlanStep_ReadOnly",
+                "CK_ExecutionPlanStep_TimeoutBound",
+                "CK_ExecutionPolicyHistory_Values",
+                "CK_ExecutionPolicyHistory_Versions",
+                "CK_ExecutionRunHistory_Counts",
+                "CK_ExecutionRunHistory_Versions",
+                "CK_ExecutionRunState_Metrics",
+                "CK_ExecutionRunState_Versions",
+                "CK_ExecutionStateTransitionHistory_Versions",
+                "CK_ExecutionStepHistory_Counts",
+                "CK_ExecutionStepHistory_Versions",
+                "CK_ExecutionStepState_Metrics",
+                "CK_ExecutionStepState_Versions",
                 "CK_InventorySnapshot_PayloadJson_IsJson",
                 "CK_InventorySnapshot_SchemaVersion_Positive",
                 "CK_ManagedServer_ConnectivityFailures_NonNegative",
+                "CK_ManagedServer_InventoryFailures_NonNegative",
+                "CK_ManagedServer_InventoryVersion_NonNegative",
                 "CK_ManagedServer_LastConnectivityFailureCategory",
                 "CK_ManagedServer_LastConnectivityState",
+                "CK_ManagedServer_LastInventoryFailureCategory",
                 "CK_ManagedServer_LastSuccessfulTransport",
                 "CK_ManagedServer_WinRmHttpPort_Range",
                 "CK_ManagedServer_WinRmHttpsPort_Range",
                 "CK_ManagedServer_WinRmProbeTimeout_Positive",
                 "CK_ManagedServer_WinRmTransportMode",
+                "CK_WindowsCapabilityEntry_RuleVersion",
+                "CK_WindowsCapabilityProvenance_InventoryVersion",
+                "CK_WindowsCapabilitySnapshot_SchemaVersion",
+                "CK_WindowsCapabilitySnapshot_SourceInventoryVersion",
                 "CK_WindowsIpv4AddressInventory_PrefixLength_Range",
-                "CK_WindowsMemoryInventory_TotalPhysicalMemoryBytes_NonNegative"
+                "CK_WindowsMemoryInventory_CapacityBytes_Positive"
             },
             names);
     }

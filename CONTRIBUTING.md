@@ -19,6 +19,12 @@ All significant changes follow this sequence:
 7. Review
 8. Merge
 
+Future implementation work also follows
+[`docs/engineering/Development-Process-Freeze-v1.0.md`](docs/engineering/Development-Process-Freeze-v1.0.md):
+an approved repository specification under `workpackages/` precedes
+implementation, prompts only launch specifications, and Architecture,
+Implementation, and Repository reviews precede approval.
+
 Use branches named `docs/<topic>`, `feature/<wp-id>-<name>` or `fix/<id>-<name>`.
 
 Pull requests must identify related Work Packages, ADRs, validation evidence, security impact and operational impact.

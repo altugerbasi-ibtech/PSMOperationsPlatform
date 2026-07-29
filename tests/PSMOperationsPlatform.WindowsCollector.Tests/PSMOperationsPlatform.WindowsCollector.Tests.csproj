@@ -13,6 +13,7 @@
     <PackageReference Include="xunit.runner.visualstudio" />
     <ProjectReference Include="..\..\src\PSMOperationsPlatform.Infrastructure\PSMOperationsPlatform.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\PSMOperationsPlatform.WindowsCollector\PSMOperationsPlatform.WindowsCollector.csproj" />
+    <ProjectReference Include="..\..\samples\PSMOperationsPlatform.HelloCollector\PSMOperationsPlatform.HelloCollector.csproj" />
   </ItemGroup>
 
   <ItemGroup>

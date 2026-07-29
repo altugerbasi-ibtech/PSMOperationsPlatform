@@ -1,0 +1,13 @@
+{
+  "Computer": [{ "ManagedServerId": "11111111-1111-1111-1111-111111111111" }],
+  "OperatingSystem": [],
+  "Memory": [],
+  "Processor": [
+    { "StableSourceKey": "CPU0" },
+    { "StableSourceKey": "CPU0" }
+  ],
+  "Disk": [],
+  "Volume": [],
+  "NetworkAdapter": [],
+  "Ipv4": []
+}

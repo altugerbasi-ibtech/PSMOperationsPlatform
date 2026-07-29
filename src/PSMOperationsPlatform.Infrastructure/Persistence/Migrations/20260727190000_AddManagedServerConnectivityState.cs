@@ -66,11 +66,13 @@ public partial class AddManagedServerConnectivityState : Migration
 
         migrationBuilder.Sql(
             """
+            EXEC(N'
             UPDATE [configuration].[ManagedServer]
-            SET [LastConnectivityState] = N'Unknown',
+            SET [LastConnectivityState] = N''Unknown'',
                 [ConsecutiveConnectivityFailures] = 0
             WHERE [LastConnectivityState] IS NULL
                OR [ConsecutiveConnectivityFailures] IS NULL;
+            ');
             """);
 
         migrationBuilder.AlterColumn<int>(

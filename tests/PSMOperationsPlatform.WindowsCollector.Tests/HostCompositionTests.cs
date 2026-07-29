@@ -88,21 +88,13 @@ public sealed class HostCompositionTests
             .Where(descriptor =>
                 descriptor.ServiceType == typeof(IWindowsInventoryModule))
             .ToArray();
-        Assert.Equal(7, modules.Length);
-        Assert.All(
-            modules,
-            descriptor => Assert.Equal(ServiceLifetime.Scoped, descriptor.Lifetime));
-        Assert.Equal(
-            [
-                typeof(ComputerInventoryModule),
-                typeof(OperatingSystemInventoryModule),
-                typeof(MemoryInventoryModule),
-                typeof(ProcessorInventoryModule),
-                typeof(DiskInventoryModule),
-                typeof(VolumeInventoryModule),
-                typeof(NetworkInventoryModule),
-            ],
-            modules.Select(descriptor => descriptor.ImplementationType));
+        Assert.Empty(modules);
+        Assert.Contains(
+            builder.Services,
+            descriptor =>
+                descriptor.ServiceType == typeof(IWindowsInventoryOrchestrator)
+                && descriptor.ImplementationType ==
+                    typeof(AtomicWindowsInventoryOrchestrator));
 
         using IHost host = builder.Build();
         using IServiceScope scope = host.Services.CreateScope();

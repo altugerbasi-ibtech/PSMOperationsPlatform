@@ -15,6 +15,8 @@ internal static partial class WindowsCollectorLog
     internal const int TargetProbeFailedId = 2331;
     internal const int TargetProbeUnexpectedId = 2332;
     internal const int TargetProbeCycleSummaryId = 2333;
+    internal const int WinRmConnectionAttemptStartedId = 2334;
+    internal const int WinRmConnectionAttemptCompletedId = 2335;
     internal const int ConnectivityResultAppliedId = 2340;
     internal const int ConnectivityResultSkippedId = 2341;
     internal const int ConnectivityConcurrencyConflictId = 2342;
@@ -26,6 +28,8 @@ internal static partial class WindowsCollectorLog
     internal const int InventoryModuleCompletedId = 2352;
     internal const int InventoryModuleFailedId = 2353;
     internal const int InventoryCompletedId = 2354;
+    internal const int InventoryModuleNormalizedId = 2355;
+    internal const int InventoryModuleContractValidatedId = 2356;
 
     [LoggerMessage(
         EventId = CollectorStartedId,
@@ -133,6 +137,40 @@ internal static partial class WindowsCollectorLog
         int resultCount,
         int reachableCount,
         int unreachableCount);
+
+    [LoggerMessage(
+        EventId = WinRmConnectionAttemptStartedId,
+        EventName = "WinRmConnectionAttemptStarted",
+        Level = LogLevel.Debug,
+        Message = "WinRM connection attempt started. TargetFqdn={TargetFqdn} Transport={Transport} Port={Port} Authentication={Authentication} IncludePortInSpn={IncludePortInSpn} ProbeTimeoutSeconds={ProbeTimeoutSeconds} AttemptNumber={AttemptNumber} IsFallbackAttempt={IsFallbackAttempt}")]
+    internal static partial void WinRmConnectionAttemptStarted(
+        ILogger logger,
+        string targetFqdn,
+        string transport,
+        int port,
+        string authentication,
+        bool includePortInSpn,
+        double probeTimeoutSeconds,
+        int attemptNumber,
+        bool isFallbackAttempt);
+
+    [LoggerMessage(
+        EventId = WinRmConnectionAttemptCompletedId,
+        EventName = "WinRmConnectionAttemptCompleted",
+        Level = LogLevel.Debug,
+        Message = "WinRM connection attempt completed. TargetFqdn={TargetFqdn} Transport={Transport} Port={Port} Authentication={Authentication} IncludePortInSpn={IncludePortInSpn} AttemptNumber={AttemptNumber} IsFallbackAttempt={IsFallbackAttempt} IsSuccessful={IsSuccessful} FailureCategory={FailureCategory} DurationMilliseconds={DurationMilliseconds}")]
+    internal static partial void WinRmConnectionAttemptCompleted(
+        ILogger logger,
+        string targetFqdn,
+        string transport,
+        int port,
+        string authentication,
+        bool includePortInSpn,
+        int attemptNumber,
+        bool isFallbackAttempt,
+        bool isSuccessful,
+        string failureCategory,
+        double durationMilliseconds);
 
     [LoggerMessage(
         EventId = ConnectivityResultAppliedId,
@@ -254,4 +292,34 @@ internal static partial class WindowsCollectorLog
         int moduleCount,
         int failedModuleCount,
         double durationMilliseconds);
+
+    [LoggerMessage(
+        EventId = InventoryModuleNormalizedId,
+        EventName = "InventoryModuleNormalized",
+        Level = LogLevel.Information,
+        Message = "Inventory module normalized. TargetId={TargetId} TargetFqdn={TargetFqdn} InventoryRunId={InventoryRunId} Module={ModuleName} RowCount={RowCount}")]
+    internal static partial void InventoryModuleNormalized(
+        ILogger logger,
+        Guid targetId,
+        string targetFqdn,
+        Guid inventoryRunId,
+        string moduleName,
+        int rowCount);
+
+    [LoggerMessage(
+        EventId = InventoryModuleContractValidatedId,
+        EventName = "InventoryModuleContractValidated",
+        Level = LogLevel.Information,
+        Message = "Inventory module contract validated. ManagedServerId={ManagedServerId} TargetFqdn={TargetFqdn} InventoryRunId={InventoryRunId} ModuleName={ModuleName} RawResultCount={RawResultCount} NormalizedResultCount={NormalizedResultCount} ValidationStatus={ValidationStatus} EmptyResultStatus={EmptyResultStatus} PersistenceStatus={PersistenceStatus}")]
+    internal static partial void InventoryModuleContractValidated(
+        ILogger logger,
+        Guid managedServerId,
+        string targetFqdn,
+        Guid inventoryRunId,
+        string moduleName,
+        int rawResultCount,
+        int normalizedResultCount,
+        string validationStatus,
+        string emptyResultStatus,
+        string persistenceStatus);
 }

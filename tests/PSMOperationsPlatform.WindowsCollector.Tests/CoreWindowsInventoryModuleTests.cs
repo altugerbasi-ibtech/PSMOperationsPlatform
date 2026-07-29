@@ -14,17 +14,21 @@ public sealed class CoreWindowsInventoryModuleTests
                 Record(
                     ("Name", "APP01"),
                     ("Domain", "ae.local"),
+                    ("DomainRole", 3),
                     ("Manufacturer", "Contoso"),
-                    ("Model", "Model 1")),
+                    ("Model", "Model 1"),
+                    ("SystemType", "x64-based PC")),
             ],
-            [Record(("SerialNumber", "SERIAL-1"))]);
+            [Record(
+                ("UUID", "550e8400-e29b-41d4-a716-446655440000"),
+                ("IdentifyingNumber", "SERIAL-1"))]);
         var store = new ComputerStore();
         var module = new ComputerInventoryModule(store);
 
         await module.ExecuteAsync(Context(session));
 
         Assert.Equal(
-            [CoreWindowsInventoryCommands.ComputerSystem, CoreWindowsInventoryCommands.Bios],
+            [CoreWindowsInventoryCommands.ComputerSystem, CoreWindowsInventoryCommands.ComputerSystemProduct],
             session.Commands);
         Assert.NotNull(store.State);
         Assert.Equal("APP01", store.State.ComputerName);
@@ -113,10 +117,12 @@ public sealed class CoreWindowsInventoryModuleTests
                 Record(
                     ("Name", name),
                     ("Domain", "ae.local"),
+                    ("DomainRole", null),
                     ("Manufacturer", null),
-                    ("Model", null)),
+                    ("Model", null),
+                    ("SystemType", null)),
             ],
-            [Record(("SerialNumber", null))]);
+            [Record(("UUID", null), ("IdentifyingNumber", null))]);
         var store = new ComputerStore();
         var module = new ComputerInventoryModule(store);
 
@@ -167,6 +173,7 @@ public sealed class CoreWindowsInventoryModuleTests
         WinRmCommandDefinition[] commands =
         [
             CoreWindowsInventoryCommands.ComputerSystem,
+            CoreWindowsInventoryCommands.ComputerSystemProduct,
             CoreWindowsInventoryCommands.Bios,
             CoreWindowsInventoryCommands.OperatingSystem,
             CoreWindowsInventoryCommands.Memory,
@@ -188,6 +195,13 @@ public sealed class CoreWindowsInventoryModuleTests
                 "Version",
                 "BuildNumber",
                 "OSArchitecture",
+                "ProductType",
+                "OperatingSystemSKU",
+                "InstallationType",
+                "SystemDrive",
+                "WindowsDirectory",
+                "Locale",
+                "CurrentTimeZone",
                 "InstallDate",
                 "LastBootUpTime",
             ],

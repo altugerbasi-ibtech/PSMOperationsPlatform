@@ -12,6 +12,8 @@ public sealed class WinRmTransportClientTests
             Target(),
             WinRmTransport.Https,
             TimeSpan.FromSeconds(1),
+            1,
+            false,
             CancellationToken.None);
 
         Assert.True(result.IsSuccessful);
@@ -34,6 +36,8 @@ public sealed class WinRmTransportClientTests
             Target(),
             WinRmTransport.Https,
             TimeSpan.FromSeconds(1),
+            1,
+            false,
             CancellationToken.None);
 
         Assert.Equal(
@@ -52,6 +56,8 @@ public sealed class WinRmTransportClientTests
             Target(),
             WinRmTransport.Https,
             TimeSpan.FromMilliseconds(10),
+            1,
+            false,
             CancellationToken.None);
 
         Assert.Equal(WinRmFailureCategory.Timeout, result.FailureCategory);
@@ -70,6 +76,8 @@ public sealed class WinRmTransportClientTests
             Target(),
             WinRmTransport.Https,
             TimeSpan.FromSeconds(10),
+            1,
+            false,
             cancellation.Token);
 
         Assert.Equal(WinRmFailureCategory.Cancelled, result.FailureCategory);
@@ -89,6 +97,8 @@ public sealed class WinRmTransportClientTests
             Target(),
             WinRmTransport.Https,
             TimeSpan.FromSeconds(1),
+            1,
+            false,
             CancellationToken.None);
 
         Assert.Equal(
@@ -137,6 +147,25 @@ public sealed class WinRmTransportClientTests
             WinRmFailureClassifier.Classify(new InvalidOperationException()));
     }
 
+    [Fact]
+    public void ClassifierUsesStructuredKerberosSpnErrorCodeWithoutMessageDependency()
+    {
+        var exception = new System.Management.Automation.Remoting
+            .PSRemotingTransportException("localized diagnostic")
+        {
+            ErrorCode = WinRmFailureClassifier.KerberosSpnMismatchErrorCode
+        };
+
+        Assert.Equal(
+            WinRmFailureCategory.KerberosSpnMismatch,
+            WinRmFailureClassifier.Classify(exception));
+        Assert.Equal(
+            WinRmFailureCategory.WinRmUnavailable,
+            WinRmFailureClassifier.Classify(
+                new System.Management.Automation.Remoting
+                    .PSRemotingTransportException("0x80090322 in text only")));
+    }
+
     [Theory]
     [InlineData((int)WinRmTransport.Https, "https", 15986)]
     [InlineData((int)WinRmTransport.Http, "http", 15985)]
@@ -155,15 +184,125 @@ public sealed class WinRmTransportClientTests
         Assert.Equal(expectedScheme, connection.ConnectionUri.Scheme);
         Assert.Equal(expectedPort, connection.ConnectionUri.Port);
         Assert.Equal(
+            System.Management.Automation.Runspaces.AuthenticationMechanism.Kerberos,
+            connection.AuthenticationMechanism);
+        Assert.NotEqual(
             System.Management.Automation.Runspaces.AuthenticationMechanism.Negotiate,
             connection.AuthenticationMechanism);
+        Assert.True(connection.IncludePortInSPN);
         Assert.Null(connection.Credential);
         Assert.Equal(7000, connection.OpenTimeout);
         Assert.Equal(7000, connection.OperationTimeout);
     }
 
+    [Fact]
+    public void RepeatedSessionConfigurationPreservesKerberosAndPortQualifiedSpn()
+    {
+        foreach (WinRmTransport transport in new[]
+                 {
+                     WinRmTransport.Https,
+                     WinRmTransport.Http,
+                     WinRmTransport.Https
+                 })
+        {
+            System.Management.Automation.Runspaces.WSManConnectionInfo connection =
+                PowerShellWinRmSessionFactory.CreateConnectionInfo(
+                    Target(),
+                    transport,
+                    TimeSpan.FromSeconds(7));
+
+            Assert.Equal(
+                System.Management.Automation.Runspaces.AuthenticationMechanism.Kerberos,
+                connection.AuthenticationMechanism);
+            Assert.True(connection.IncludePortInSPN);
+            Assert.Null(connection.Credential);
+        }
+    }
+
+    [Fact]
+    public async Task AttemptLogsSafeStructuredKerberosContext()
+    {
+        var logger = new RecordingLogger<WinRmTransportClient>();
+        var client = new WinRmTransportClient(
+            new TestSessionFactory(new TestSession()),
+            TimeProvider.System,
+            logger);
+
+        await client.AttemptAsync(
+            Target(),
+            WinRmTransport.Http,
+            TimeSpan.FromSeconds(7),
+            2,
+            true,
+            CancellationToken.None);
+
+        LogEntry started = Assert.Single(
+            logger.Entries,
+            entry =>
+                entry.EventId ==
+                WindowsCollectorLog.WinRmConnectionAttemptStartedId);
+        Assert.Equal("target.example.local", started.Values["TargetFqdn"]);
+        Assert.Equal("Http", started.Values["Transport"]);
+        Assert.Equal(15985, started.Values["Port"]);
+        Assert.Equal("Kerberos", started.Values["Authentication"]);
+        Assert.Equal(true, started.Values["IncludePortInSpn"]);
+        Assert.Equal(7d, started.Values["ProbeTimeoutSeconds"]);
+        Assert.Equal(2, started.Values["AttemptNumber"]);
+        Assert.Equal(true, started.Values["IsFallbackAttempt"]);
+        Assert.DoesNotContain(
+            started.Values.Keys,
+            key => key.Contains("Credential", StringComparison.OrdinalIgnoreCase)
+                || key.Contains("Password", StringComparison.OrdinalIgnoreCase)
+                || key.Contains("Token", StringComparison.OrdinalIgnoreCase));
+    }
+
+    [Fact]
+    public async Task KerberosSpnMismatchIsExposedInCompletedAttemptDiagnostics()
+    {
+        var logger = new RecordingLogger<WinRmTransportClient>();
+        var exception = new System.Management.Automation.Remoting
+            .PSRemotingTransportException("localized diagnostic")
+        {
+            ErrorCode = WinRmFailureClassifier.KerberosSpnMismatchErrorCode
+        };
+        var client = new WinRmTransportClient(
+            new TestSessionFactory(new TestSession(exception)),
+            TimeProvider.System,
+            logger);
+
+        WinRmAttemptResult result = await client.AttemptAsync(
+            Target(),
+            WinRmTransport.Https,
+            TimeSpan.FromSeconds(7),
+            1,
+            false,
+            CancellationToken.None);
+
+        Assert.Equal(
+            WinRmFailureCategory.KerberosSpnMismatch,
+            result.FailureCategory);
+        LogEntry completed = Assert.Single(
+            logger.Entries,
+            entry =>
+                entry.EventId ==
+                WindowsCollectorLog.WinRmConnectionAttemptCompletedId);
+        Assert.Equal(
+            "KerberosSpnMismatch",
+            completed.Values["FailureCategory"]);
+        Assert.DoesNotContain(
+            completed.Values.Values,
+            value => string.Equals(
+                value?.ToString(),
+                exception.Message,
+                StringComparison.Ordinal));
+    }
+
     private static WinRmTransportClient CreateClient(TestSession session) =>
-        new(new TestSessionFactory(session), TimeProvider.System);
+        new(
+            new TestSessionFactory(session),
+            TimeProvider.System,
+            Microsoft.Extensions.Logging.Abstractions
+                .NullLogger<WinRmTransportClient>.Instance);
 
     private static WindowsTarget Target() =>
         new(
@@ -222,6 +361,33 @@ public sealed class WinRmTransportClientTests
 
             Disposed = true;
             return ValueTask.CompletedTask;
+        }
+    }
+
+    private sealed record LogEntry(
+        int EventId,
+        IReadOnlyDictionary<string, object?> Values);
+
+    private sealed class RecordingLogger<T> : Microsoft.Extensions.Logging.ILogger<T>
+    {
+        public List<LogEntry> Entries { get; } = [];
+
+        public IDisposable? BeginScope<TState>(TState state)
+            where TState : notnull => null;
+
+        public bool IsEnabled(Microsoft.Extensions.Logging.LogLevel logLevel) =>
+            true;
+
+        public void Log<TState>(
+            Microsoft.Extensions.Logging.LogLevel logLevel,
+            Microsoft.Extensions.Logging.EventId eventId,
+            TState state,
+            Exception? exception,
+            Func<TState, Exception?, string> formatter)
+        {
+            var values = ((IEnumerable<KeyValuePair<string, object?>>)state!)
+                .ToDictionary(pair => pair.Key, pair => pair.Value);
+            Entries.Add(new LogEntry(eventId.Id, values));
         }
     }
 }

@@ -97,7 +97,8 @@ internal sealed class PowerShellWinRmSessionFactory : IWinRmSessionFactory
         int timeoutMilliseconds = checked((int)timeout.TotalMilliseconds);
         return new WSManConnectionInfo(endpoint)
         {
-            AuthenticationMechanism = AuthenticationMechanism.Negotiate,
+            AuthenticationMechanism = AuthenticationMechanism.Kerberos,
+            IncludePortInSPN = true,
             OpenTimeout = timeoutMilliseconds,
             OperationTimeout = timeoutMilliseconds,
             MaximumConnectionRedirectionCount = 0

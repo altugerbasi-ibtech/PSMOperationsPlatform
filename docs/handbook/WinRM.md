@@ -1,6 +1,6 @@
 ---
 title: WinRM Standards
-version: 1.3.0
+version: 1.4.0
 status: Approved
 owner: Engineering
 last_updated: 2026-07-27
@@ -45,10 +45,24 @@ The complete matrix is in
 Exact probe semantics and cleanup are in
 [`../collectors/WP-004-WinRM-Connectivity.md`](../collectors/WP-004-WinRM-Connectivity.md).
 
+## Kerberos SPN policy
+
+Every Collector-owned WinRM session uses explicit Kerberos with the process
+identity and `IncludePortInSPN`. HTTP and HTTPS use the selected configured
+port, including custom ports. HTTPS WinRM still uses the `HTTP` Kerberos
+service class.
+
+IIS application pools may legitimately use a domain account or gMSA that owns
+the unqualified HTTP SPNs. Moving those SPNs can break IIS Kerberos. The
+Collector therefore coexists through port-qualified SPNs and never changes AD.
+Same-domain Kerberos does not require TrustedHosts, Basic authentication,
+credentials, or NTLM fallback.
+
 ## Revision history
 
 | Version | Date | Description |
 |---|---|---|
+| 1.4.0 | 2026-07-28 | Required explicit Kerberos and port-qualified SPNs for IIS coexistence |
 | 1.3.0 | 2026-07-27 | Synchronized handbook wording with completed WP-004 |
 | 1.2.0 | 2026-07-27 | Recorded implemented WP-004.4 SDK, budgets and transport behavior |
 | 1.1.1 | 2026-07-27 | Marked WP-004 proposed and added compatibility/timeout direction |

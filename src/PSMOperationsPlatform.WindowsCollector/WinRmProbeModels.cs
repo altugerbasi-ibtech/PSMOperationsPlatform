@@ -16,6 +16,7 @@ internal enum WinRmFailureCategory
     Timeout,
     TlsFailure,
     AuthenticationFailure,
+    KerberosSpnMismatch,
     AuthorizationFailure,
     WinRmUnavailable,
     ProtocolFailure,

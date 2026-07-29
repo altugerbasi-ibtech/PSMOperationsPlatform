@@ -7,6 +7,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{827E0CD3-B72
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSMOperationsPlatform.Application", "src\PSMOperationsPlatform.Application\PSMOperationsPlatform.Application.csproj", "{8B20283B-F782-4245-B9C8-42A4D0826392}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSMOperationsPlatform.CollectorSdk", "src\PSMOperationsPlatform.CollectorSdk\PSMOperationsPlatform.CollectorSdk.csproj", "{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSMOperationsPlatform.Contracts", "src\PSMOperationsPlatform.Contracts\PSMOperationsPlatform.Contracts.csproj", "{42D99076-DFAF-47A3-860E-93B3E7DC0D12}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PSMOperationsPlatform.Domain", "src\PSMOperationsPlatform.Domain\PSMOperationsPlatform.Domain.csproj", "{D582C699-345F-4E82-9CE6-C919A6F1EF9A}"
@@ -41,6 +43,18 @@ Global
 		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Debug|x64.Build.0 = Debug|Any CPU
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Debug|x86.Build.0 = Debug|Any CPU
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Release|x64.ActiveCfg = Release|Any CPU
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Release|x64.Build.0 = Release|Any CPU
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Release|x86.ActiveCfg = Release|Any CPU
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6}.Release|x86.Build.0 = Release|Any CPU
 		{8B20283B-F782-4245-B9C8-42A4D0826392}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8B20283B-F782-4245-B9C8-42A4D0826392}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B20283B-F782-4245-B9C8-42A4D0826392}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -191,6 +205,7 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{8B20283B-F782-4245-B9C8-42A4D0826392} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{B1526D43-8ED7-4B4C-BB55-43C75D1F00A6} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{42D99076-DFAF-47A3-860E-93B3E7DC0D12} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{D582C699-345F-4E82-9CE6-C919A6F1EF9A} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{CFF6B202-E444-4F0B-85CC-783E8435A4B5} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}

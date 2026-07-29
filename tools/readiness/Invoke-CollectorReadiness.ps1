@@ -88,15 +88,18 @@ $context = @{
     SqlServer = $SqlServer
     DatabaseName = $DatabaseName
 }
-$manifest = New-ReadinessManifest -Mode $Mode -Context $context `
-    -Checks @($checks) -GeneratedAt (Get-Date)
-$paths = Write-ReadinessReports -Manifest $manifest -OutputDirectory $OutputDirectory `
+$completion = Complete-ReadinessRun -Mode $Mode -Context $context `
+    -Checks $checks -GeneratedAt (Get-Date) -OutputDirectory $OutputDirectory `
     -GenerateJson $GenerateJson -GenerateMarkdown $GenerateMarkdown
-foreach ($check in $manifest.Checks) {
+foreach ($check in $completion.Checks) {
     Write-Output "[$($check.Status)] $($check.Category) - $($check.Summary)"
 }
-Write-Output "Overall: $($manifest.OverallStatus)"
-if ($paths.JsonPath) { Write-Output "JSON: $($paths.JsonPath)" }
-if ($paths.MarkdownPath) { Write-Output "Markdown: $($paths.MarkdownPath)" }
-Write-Output "Exit Code: $($manifest.ExitCode)"
-exit $manifest.ExitCode
+Write-Output "Overall: $($completion.OverallStatus)"
+if ($completion.Paths -and $completion.Paths.JsonPath) {
+    Write-Output "JSON: $($completion.Paths.JsonPath)"
+}
+if ($completion.Paths -and $completion.Paths.MarkdownPath) {
+    Write-Output "Markdown: $($completion.Paths.MarkdownPath)"
+}
+Write-Output "Exit Code: $($completion.ExitCode)"
+exit $completion.ExitCode

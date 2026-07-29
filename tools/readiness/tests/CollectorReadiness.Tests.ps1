@@ -35,6 +35,34 @@ function New-TestTable {
     $table
 }
 
+function New-TestManifestContext {
+    @{
+        CollectorVersion=$null; CollectorServiceName='svc'
+        CollectorInstallPath='c:\x'; TargetFqdn=$null
+        TransportPolicy=$null; SqlServer=$null; DatabaseName=$null
+    }
+}
+
+function New-TestHostOperations {
+    param([int]$BuildNumber, [string]$Caption)
+    $operatingSystem = @{
+        Version="10.0.$BuildNumber"; BuildNumber=[string]$BuildNumber
+        OSArchitecture='64-bit'; Caption=$Caption
+    }
+    @{
+        GetComputerSystem = {
+            @{
+                Name='COLLECTOR01'; Domain='example.test'; PartOfDomain=$true
+                TotalPhysicalMemory=8589934592; NumberOfLogicalProcessors=4
+            }
+        }
+        GetOperatingSystem = { $operatingSystem }.GetNewClosure()
+        GetTimeZone = { @{Id='Turkey Standard Time'} }
+        GetTimeService = { @{Status='Running'} }
+        GetVolume = { param($path) @{FreeSpace=10737418240;Size=21474836480} }
+    }
+}
+
 Describe 'Core result model and aggregation' {
     It 'accepts all allowed status values' {
         foreach ($status in @('PASS','WARNING','FAIL','SKIPPED','NOT_APPLICABLE')) {
@@ -76,7 +104,7 @@ Describe 'Core result model and aggregation' {
         Get-ReadinessStatus @((New-TestCheck TEST.PASS PASS),(New-TestCheck TEST.SKIPPED SKIPPED $false $false)) | Should Be READY
     }
     It 'orders checks deterministically' {
-        $context = @{CollectorVersion=$null;CollectorServiceName='svc';CollectorInstallPath='c:\x';TargetFqdn=$null;TransportPolicy=$null;SqlServer=$null;DatabaseName=$null}
+        $context = New-TestManifestContext
         $manifest = New-ReadinessManifest CollectorHost $context @((New-TestCheck TEST.Z PASS),(New-TestCheck TEST.A PASS)) ([datetime]'2026-07-27T12:00:00+03:00')
         $manifest.Checks[0].CheckId | Should Be TEST.A
     }
@@ -88,6 +116,51 @@ Describe 'Core result model and aggregation' {
     It 'normalizes unexpected errors to NOT_READY' {
         $check = New-InternalErrorCheck FRAMEWORK.INTERNAL.ERROR CollectorHost framework
         (Get-ReadinessExitCode (Get-ReadinessStatus @($check))) | Should Be 2
+    }
+}
+
+Describe 'Readiness check collection normalization' {
+    It 'normalizes zero checks' {
+        [object[]]$result = @(ConvertTo-ReadinessCheckArray @())
+        $result.Count | Should Be 0
+    }
+    It 'normalizes one check' {
+        [object[]]$result = @(ConvertTo-ReadinessCheckArray (New-TestCheck TEST.ONE PASS))
+        $result.Count | Should Be 1
+        $result[0].CheckId | Should Be TEST.ONE
+    }
+    It 'normalizes multiple checks and preserves their order' {
+        [object[]]$result = @(ConvertTo-ReadinessCheckArray @(
+            (New-TestCheck TEST.Z PASS), (New-TestCheck TEST.A PASS)))
+        ($result.CheckId -join ',') | Should Be 'TEST.Z,TEST.A'
+    }
+    It 'normalizes a generic List object without fragile array conversion' {
+        $list = New-Object System.Collections.Generic.List[object]
+        $list.Add((New-TestCheck TEST.LIST.Z PASS))
+        $list.Add((New-TestCheck TEST.LIST.A PASS))
+        $manifest = New-ReadinessManifest CollectorHost (New-TestManifestContext) `
+            $list ([datetime]'2026-07-27T12:00:00+03:00')
+        ($manifest.Checks.CheckId -join ',') | Should Be 'TEST.LIST.A,TEST.LIST.Z'
+    }
+    It 'normalizes an object array' {
+        [object[]]$checks = @((New-TestCheck TEST.ARRAY PASS))
+        (New-ReadinessManifest CollectorHost (New-TestManifestContext) `
+            $checks ([datetime]'2026-07-27T12:00:00+03:00')).Checks.Count | Should Be 1
+    }
+    It 'normalizes an ArrayList' {
+        $checks = New-Object System.Collections.ArrayList
+        $null = $checks.Add((New-TestCheck TEST.ARRAYLIST PASS))
+        (New-ReadinessManifest CollectorHost (New-TestManifestContext) `
+            $checks ([datetime]'2026-07-27T12:00:00+03:00')).Checks.Count | Should Be 1
+    }
+    It 'creates a NOT_READY manifest for zero checks without changing the schema' {
+        $manifest = New-ReadinessManifest -Mode CollectorHost `
+            -Context (New-TestManifestContext) -Checks @() `
+            -GeneratedAt ([datetime]'2026-07-27T12:00:00+03:00')
+        $manifest.OverallStatus | Should Be NOT_READY
+        $manifest.ExitCode | Should Be 2
+        ($manifest.psobject.Properties.Name -join ',') | Should Be `
+            'SchemaVersion,FrameworkName,FrameworkVersion,GeneratedAt,GeneratedOnMachine,ExecutingIdentity,PowerShellVersion,OperatingSystem,Mode,CollectorVersion,CollectorServiceName,CollectorInstallPath,TargetFqdn,TransportPolicy,SqlServer,DatabaseName,Categories,OverallStatus,ExitCode,Checks'
     }
 }
 
@@ -128,6 +201,29 @@ Describe 'Manifest, JSON, Markdown and redaction' {
     It 'rejects a missing output directory' {
         { Write-ReadinessReports $manifest (Join-Path $TestDrive missing) $true $true } | Should Throw
     }
+    It 'writes JSON and Markdown from a generic List input' {
+        $list = New-Object System.Collections.Generic.List[object]
+        $list.Add((New-TestCheck TEST.REPORT PASS))
+        $genericManifest = New-ReadinessManifest CollectorHost `
+            (New-TestManifestContext) $list ([datetime]'2026-07-27T12:00:00+03:00')
+        $paths = Write-ReadinessReports $genericManifest $TestDrive $true $true
+        (Get-Content -Raw $paths.JsonPath | ConvertFrom-Json).Checks[0].CheckId |
+            Should Be TEST.REPORT
+        (Get-Content -Raw $paths.MarkdownPath) | Should Match 'TEST\.REPORT'
+    }
+    It 'does not pass a null manifest to report writing after construction failure' {
+        Mock New-ReadinessManifest { throw 'Password=do-not-expose' }
+        Mock Write-ReadinessReports { throw 'must not execute' }
+        $result = Complete-ReadinessRun CollectorHost (New-TestManifestContext) `
+            @() ([datetime]'2026-07-27T12:00:00+03:00') $TestDrive $true $true
+        Assert-MockCalled Write-ReadinessReports 0
+        $result.Manifest | Should Be $null
+        $result.Checks.Count | Should Be 1
+        $result.Checks[0].Status | Should Be FAIL
+        $result.OverallStatus | Should Be NOT_READY
+        $result.ExitCode | Should Be 2
+        ($result | ConvertTo-Json -Depth 8) | Should Not Match 'do-not-expose|Password'
+    }
 }
 
 Describe 'Runtime and collector files' {
@@ -158,6 +254,115 @@ Describe 'Runtime and collector files' {
 }
 
 Describe 'Configuration, service and identity' {
+    It 'classifies missing optional configuration files separately from missing values' {
+        $ops = @{
+            TestPath={param($p)$false}; GetContent={throw 'must not execute'}
+            GetEnvironment={param($n)$null}
+        }
+        $checks = Test-ConfigurationReadiness (New-TestParameters) $ops
+        ($checks | Where-Object CheckId -eq CONFIG.FILE.BASE).Status |
+            Should Be NOT_APPLICABLE
+        ($checks | Where-Object CheckId -eq CONFIG.FILE.BASE).Evidence |
+            Should Match 'Status: Not found'
+        ($checks | Where-Object CheckId -eq CONFIG.OPERATIONSDATABASE).Status |
+            Should Be FAIL
+    }
+    It 'classifies an unreadable configuration file without calling it invalid JSON' {
+        $ops = @{
+            TestPath={param($p) $p -like '*appsettings.json'}
+            GetContent={param($p) throw [System.UnauthorizedAccessException]::new()}
+            GetEnvironment={param($n)$null}
+        }
+        $check = Test-ConfigurationReadiness (New-TestParameters) $ops |
+            Where-Object CheckId -eq CONFIG.FILE.BASE
+        $check.Status | Should Be FAIL
+        $check.Summary | Should Match 'cannot be opened'
+        $check.Evidence | Should Match 'Status: Unreadable'
+        $check.Summary | Should Not Match 'invalid JSON'
+    }
+    It 'classifies invalid JSON precisely' {
+        $ops = @{
+            TestPath={param($p) $p -like '*appsettings.json'}
+            GetContent={param($p)'{'}
+            GetEnvironment={param($n)$null}
+        }
+        $check = Test-ConfigurationReadiness (New-TestParameters) $ops |
+            Where-Object CheckId -eq CONFIG.FILE.BASE
+        $check.Status | Should Be FAIL
+        $check.Summary | Should Match 'invalid JSON'
+        $check.Evidence | Should Match 'Status: Invalid JSON'
+    }
+    It 'accepts valid JSON without an optional ConnectionStrings section' {
+        $ops = @{
+            TestPath={param($p) $p -like '*appsettings.json'}
+            GetContent={param($p)'{"Logging":{"LogLevel":{"Default":"Information"}}}'}
+            GetEnvironment={param($n)
+                if($n -like 'PSM__*') {
+                    'Server=s;Database=d;Integrated Security=True'
+                } else {$null}
+            }
+        }
+        $checks = Test-ConfigurationReadiness (New-TestParameters) $ops
+        ($checks | Where-Object CheckId -eq CONFIG.FILE.BASE).Status |
+            Should Be PASS
+        @($checks | Where-Object {
+            $_.Summary -match 'invalid JSON'
+        }).Count | Should Be 0
+        ($checks | Where-Object CheckId -eq CONFIG.OPERATIONSDATABASE).Status |
+            Should Be PASS
+    }
+    It 'accepts environment-variable-only configuration and reports its source' {
+        $secretValue = 'Server=sql;Database=db;Integrated Security=True;Application Name=private-marker'
+        $ops = @{
+            TestPath={param($p)$false}
+            GetContent={throw 'must not execute'}
+            GetEnvironment={param($n)$null}
+            GetMachineEnvironment={param($n) $secretValue}
+        }
+        $checks = Test-ConfigurationReadiness (New-TestParameters) $ops
+        $check = $checks | Where-Object CheckId -eq CONFIG.OPERATIONSDATABASE
+        $check.Status | Should Be PASS
+        $check.Summary | Should Match 'Environment Variable'
+        $check.Evidence | Should Match 'Provider: Machine'
+        $check.Evidence | Should Match 'PSM__ConnectionStrings__OperationsDatabase'
+        ($checks | ConvertTo-Json -Depth 8) | Should Not Match 'private-marker'
+    }
+    It 'applies environment-variable precedence over JSON without reporting a conflict' {
+        $ops = @{
+            TestPath={param($p) $p -like '*appsettings.json'}
+            GetContent={param($p)'{"ConnectionStrings":{"OperationsDatabase":"Server=json;Database=jsondb;Integrated Security=True"}}'}
+            GetEnvironment={param($n)$null}
+            GetMachineEnvironment={
+                param($n)'Server=env;Database=envdb;Integrated Security=True'
+            }
+        }
+        $checks = Test-ConfigurationReadiness (New-TestParameters) $ops
+        $source = $checks | Where-Object CheckId -eq CONFIG.OPERATIONSDATABASE
+        $source.Summary | Should Match 'Environment Variable'
+        $source.Evidence | Should Match 'Provider: Machine'
+        ($checks | Where-Object CheckId -eq CONFIG.SOURCE.PRECEDENCE).Status |
+            Should Be PASS
+        ($checks | Where-Object CheckId -eq CONFIG.SQL.AUTHENTICATION).Status |
+            Should Be PASS
+    }
+    It 'applies environment-specific JSON precedence over base appsettings JSON' {
+        $ops = @{
+            TestPath={param($p)$true}
+            GetContent={param($p)
+                if($p -like '*appsettings.Production.json') {
+                    '{"ConnectionStrings":{"OperationsDatabase":"Server=environmentjson;Database=db;Integrated Security=True"}}'
+                } else {
+                    '{"ConnectionStrings":{"OperationsDatabase":"Server=basejson;Database=db;Integrated Security=True"}}'
+                }
+            }
+            GetEnvironment={param($n)$null}
+        }
+        $checks = Test-ConfigurationReadiness (New-TestParameters) $ops
+        ($checks | Where-Object CheckId -eq CONFIG.OPERATIONSDATABASE).Summary |
+            Should Match 'appsettings.Production.json'
+        ($checks | Where-Object CheckId -eq CONFIG.SQL.AUTHENTICATION).Status |
+            Should Be PASS
+    }
     It 'fails missing OperationsDatabase' {
         $ops = @{TestPath={param($p)$false};GetContent={};GetEnvironment={param($n)$null}}
         (Test-ConfigurationReadiness (New-TestParameters) $ops | Where-Object CheckId -eq CONFIG.OPERATIONSDATABASE).Status | Should Be FAIL
@@ -208,6 +413,129 @@ Describe 'Configuration, service and identity' {
     It 'fails when gMSA validation fails' {
         $ops = @{GetAdCommand={@{Name='Test-ADServiceAccount'}};TestAdAccount={param($n)$false};GetCurrentIdentity={'EXAMPLE\operator'}}
         (Test-IdentityReadiness (New-TestParameters) $ops | Where-Object CheckId -eq IDENTITY.GMSA).Status | Should Be FAIL
+    }
+}
+
+Describe 'Supported production and controlled-lab platform policy' {
+    It 'warns for Windows Server 2019 support but passes SmokeTest platform validation' {
+        $parameters = New-TestParameters
+        $checks = Test-CollectorHostReadiness $parameters `
+            (New-TestHostOperations 17763 'Microsoft Windows Server 2019')
+        ($checks | Where-Object CheckId -eq HOST.OS.SUPPORTED).Status |
+            Should Be WARNING
+        ($checks | Where-Object CheckId -eq HOST.OS.MODE).Status | Should Be PASS
+        $status = Get-ReadinessStatus $checks
+        $status | Should Be WARNING
+        (Get-ReadinessExitCode $status) | Should Be 1
+    }
+    It 'passes Windows Server 2019 CollectorHost deployment validation with a production warning' {
+        $parameters = New-TestParameters
+        $parameters.Mode = 'CollectorHost'
+        $checks = Test-CollectorHostReadiness $parameters `
+            (New-TestHostOperations 17763 'Microsoft Windows Server 2019')
+        $supportCheck = $checks | Where-Object CheckId -eq HOST.OS.SUPPORTED
+        $modeCheck = $checks | Where-Object CheckId -eq HOST.OS.MODE
+        $supportCheck.Status | Should Be WARNING
+        $supportCheck.IsBlocking | Should Be $false
+        $modeCheck.Status | Should Be PASS
+        @($checks | Where-Object {
+            $_.CheckId -like 'HOST.OS.*' -and $_.Status -eq 'FAIL'
+        }).Count | Should Be 0
+        $status = Get-ReadinessStatus $checks
+        $status | Should Be WARNING
+        (Get-ReadinessExitCode $status) | Should Be 1
+        (Get-ReadinessCategories $checks |
+            Where-Object Name -eq CollectorHost).Status | Should Be WARNING
+    }
+    It 'passes Windows Server 2022 production and smoke-test policies' {
+        foreach ($mode in @('CollectorHost','SmokeTest')) {
+            $parameters = New-TestParameters
+            $parameters.Mode = $mode
+            $checks = Test-CollectorHostReadiness $parameters `
+                (New-TestHostOperations 20348 'Microsoft Windows Server 2022')
+            ($checks | Where-Object CheckId -eq HOST.OS.SUPPORTED).Status |
+                Should Be PASS
+            ($checks | Where-Object CheckId -eq HOST.OS.MODE).Status |
+                Should Be PASS
+            Get-ReadinessStatus $checks | Should Be READY
+        }
+    }
+    It 'passes Windows Server 2025 production and smoke-test policies' {
+        foreach ($mode in @('CollectorHost','SmokeTest')) {
+            $parameters = New-TestParameters
+            $parameters.Mode = $mode
+            $checks = Test-CollectorHostReadiness $parameters `
+                (New-TestHostOperations 26100 'Microsoft Windows Server 2025')
+            ($checks | Where-Object CheckId -eq HOST.OS.SUPPORTED).Status |
+                Should Be PASS
+            ($checks | Where-Object CheckId -eq HOST.OS.MODE).Status |
+                Should Be PASS
+            (Get-ReadinessExitCode (Get-ReadinessStatus $checks)) | Should Be 0
+        }
+    }
+    It 'fails platforms older than Windows Server 2019 in every mode' {
+        foreach ($mode in @('CollectorHost','SmokeTest')) {
+            $parameters = New-TestParameters
+            $parameters.Mode = $mode
+            $checks = Test-CollectorHostReadiness $parameters `
+                (New-TestHostOperations 14393 'Microsoft Windows Server 2016')
+            ($checks | Where-Object CheckId -eq HOST.OS.SUPPORTED).Status |
+                Should Be FAIL
+            ($checks | Where-Object CheckId -eq HOST.OS.MODE).Status |
+                Should Be FAIL
+            Get-ReadinessStatus $checks | Should Be NOT_READY
+        }
+    }
+    It 'fails a non-server Windows operating system' {
+        $parameters = New-TestParameters
+        $parameters.Mode = 'CollectorHost'
+        $checks = Test-CollectorHostReadiness $parameters `
+            (New-TestHostOperations 26100 'Microsoft Windows 11 Enterprise')
+        ($checks | Where-Object CheckId -eq HOST.OS.SUPPORTED).Status |
+            Should Be FAIL
+        ($checks | Where-Object CheckId -eq HOST.OS.MODE).Status |
+            Should Be FAIL
+    }
+    It 'does not let the production warning suppress an unrelated blocking failure' {
+        $parameters = New-TestParameters
+        $parameters.Mode = 'CollectorHost'
+        [object[]]$checks = @(Test-CollectorHostReadiness $parameters `
+            (New-TestHostOperations 17763 'Microsoft Windows Server 2019'))
+        $checks += New-TestCheck TEST.UNRELATED.FAIL FAIL
+        Get-ReadinessStatus $checks | Should Be NOT_READY
+        (Get-ReadinessExitCode (Get-ReadinessStatus $checks)) | Should Be 2
+    }
+    It 'keeps platform checks deterministic and JSON schema-compatible' {
+        $parameters = New-TestParameters
+        $parameters.Mode = 'CollectorHost'
+        $checks = Test-CollectorHostReadiness $parameters `
+            (New-TestHostOperations 17763 'Microsoft Windows Server 2019')
+        $manifest = New-ReadinessManifest -Mode CollectorHost `
+            -Context (New-TestManifestContext) -Checks $checks `
+            -GeneratedAt ([datetime]'2026-07-27T12:00:00+03:00')
+        $platformIds = @($manifest.Checks | Where-Object {
+            $_.CheckId -like 'HOST.OS.*'
+        } | Select-Object -ExpandProperty CheckId)
+        ($platformIds -join ',') | Should Be 'HOST.OS.MODE,HOST.OS.SUPPORTED'
+        $roundTrip = $manifest | ConvertTo-Json -Depth 8 | ConvertFrom-Json
+        $roundTrip.SchemaVersion | Should Be '1.0'
+        $roundTrip.OverallStatus | Should Be WARNING
+        $roundTrip.ExitCode | Should Be 1
+    }
+    It 'separates deployment readiness from production support in Markdown' {
+        $parameters = New-TestParameters
+        $parameters.Mode = 'CollectorHost'
+        $checks = Test-CollectorHostReadiness $parameters `
+            (New-TestHostOperations 17763 'Microsoft Windows Server 2019')
+        $manifest = New-ReadinessManifest -Mode CollectorHost `
+            -Context (New-TestManifestContext) -Checks $checks `
+            -GeneratedAt ([datetime]'2026-07-27T12:00:00+03:00')
+        $markdown = ConvertTo-ReadinessMarkdown $manifest
+        $markdown | Should Match '## Platform Classification'
+        $markdown | Should Match 'Deployment readiness \| PASS'
+        $markdown | Should Match 'Production support \| WARNING'
+        $markdown | Should Match 'controlled-lab platform'
+        $markdown | Should Not Match 'Password=|private-marker'
     }
 }
 

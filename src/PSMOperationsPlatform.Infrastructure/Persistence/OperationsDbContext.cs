@@ -33,6 +33,9 @@ public class OperationsDbContext : DbContext
     public DbSet<WindowsOperatingSystemInventory> WindowsOperatingSystemInventories =>
         Set<WindowsOperatingSystemInventory>();
 
+    public DbSet<WindowsBiosInventory> WindowsBiosInventories =>
+        Set<WindowsBiosInventory>();
+
     public DbSet<WindowsMemoryInventory> WindowsMemoryInventories =>
         Set<WindowsMemoryInventory>();
 
@@ -50,6 +53,49 @@ public class OperationsDbContext : DbContext
 
     public DbSet<WindowsIpv4AddressInventory> WindowsIpv4AddressInventories =>
         Set<WindowsIpv4AddressInventory>();
+
+    public DbSet<WindowsRoleInventory> WindowsRoleInventories =>
+        Set<WindowsRoleInventory>();
+
+    public DbSet<WindowsFeatureInventory> WindowsFeatureInventories =>
+        Set<WindowsFeatureInventory>();
+
+    public DbSet<WindowsIisPlatformInventory> WindowsIisPlatformInventories =>
+        Set<WindowsIisPlatformInventory>();
+
+    public DbSet<WindowsDotNetPlatformInventory> WindowsDotNetPlatformInventories =>
+        Set<WindowsDotNetPlatformInventory>();
+
+    public DbSet<WindowsPowerShellPlatformInventory> WindowsPowerShellPlatformInventories =>
+        Set<WindowsPowerShellPlatformInventory>();
+
+    public DbSet<WindowsCapabilitySnapshot> WindowsCapabilitySnapshots =>
+        Set<WindowsCapabilitySnapshot>();
+
+    public DbSet<WindowsCapabilityEntry> WindowsCapabilityEntries =>
+        Set<WindowsCapabilityEntry>();
+    public DbSet<WindowsCapabilityProvenance> WindowsCapabilityProvenance => Set<WindowsCapabilityProvenance>();
+    public DbSet<CollectorDecisionPlan> CollectorDecisionPlans => Set<CollectorDecisionPlan>();
+    public DbSet<CollectorStrategyDecision> CollectorStrategyDecisions => Set<CollectorStrategyDecision>();
+    public DbSet<CollectorDecisionCapabilityReference> CollectorDecisionCapabilityReferences =>
+        Set<CollectorDecisionCapabilityReference>();
+    public DbSet<ExecutionPlan> ExecutionPlans => Set<ExecutionPlan>();
+    public DbSet<ExecutionPlanStep> ExecutionPlanSteps => Set<ExecutionPlanStep>();
+    public DbSet<ExecutionPlanExclusion> ExecutionPlanExclusions => Set<ExecutionPlanExclusion>();
+    public DbSet<ExecutionPlanExclusionCapability> ExecutionPlanExclusionCapabilities =>
+        Set<ExecutionPlanExclusionCapability>();
+    public DbSet<ExecutionRunStateEntity> ExecutionRunStates => Set<ExecutionRunStateEntity>();
+    public DbSet<ExecutionStepStateEntity> ExecutionStepStates => Set<ExecutionStepStateEntity>();
+    public DbSet<ExecutionAttemptStateEntity> ExecutionAttemptStates => Set<ExecutionAttemptStateEntity>();
+    public DbSet<ExecutionRunHistoryEntity> ExecutionRunHistory => Set<ExecutionRunHistoryEntity>();
+    public DbSet<ExecutionStepHistoryEntity> ExecutionStepHistory => Set<ExecutionStepHistoryEntity>();
+    public DbSet<ExecutionAttemptHistoryEntity> ExecutionAttemptHistory => Set<ExecutionAttemptHistoryEntity>();
+    public DbSet<ExecutionStateTransitionHistoryEntity> ExecutionStateTransitionHistory =>
+        Set<ExecutionStateTransitionHistoryEntity>();
+    public DbSet<ExecutionArtifactHistoryEntity> ExecutionArtifactHistory =>
+        Set<ExecutionArtifactHistoryEntity>();
+    public DbSet<ExecutionPolicyHistoryEntity> ExecutionPolicyHistory =>
+        Set<ExecutionPolicyHistoryEntity>();
 
     public DbSet<CommandQueueItem> CommandQueueItems => Set<CommandQueueItem>();
 

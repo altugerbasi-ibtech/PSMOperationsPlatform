@@ -31,6 +31,8 @@ internal sealed class WindowsConnectivityProbe(
                         target,
                         WinRmTransport.Https,
                         target.ProbeTimeout,
+                        1,
+                        false,
                         cancellationToken),
                     startedAt),
             WinRmTransportMode.HttpOnly =>
@@ -40,6 +42,8 @@ internal sealed class WindowsConnectivityProbe(
                         target,
                         WinRmTransport.Http,
                         target.ProbeTimeout,
+                        1,
+                        false,
                         cancellationToken),
                     startedAt),
             WinRmTransportMode.Auto =>
@@ -66,14 +70,20 @@ internal sealed class WindowsConnectivityProbe(
                 cancellationToken,
                 budgetSource.Token);
 
-        WinRmAttemptResult https = await AttemptAsync(WinRmTransport.Https);
+        WinRmAttemptResult https = await AttemptAsync(
+            WinRmTransport.Https,
+            1,
+            false);
 
         if (https.IsSuccessful || !ShouldFallback(https.FailureCategory))
         {
             return Final(target.TargetId, https, startedAt);
         }
 
-        WinRmAttemptResult http = await AttemptAsync(WinRmTransport.Http);
+        WinRmAttemptResult http = await AttemptAsync(
+            WinRmTransport.Http,
+            2,
+            true);
 
         return Final(
             target.TargetId,
@@ -82,12 +92,16 @@ internal sealed class WindowsConnectivityProbe(
             WinRmTransport.Https);
 
         async Task<WinRmAttemptResult> AttemptAsync(
-            WinRmTransport transport)
+            WinRmTransport transport,
+            int attemptNumber,
+            bool isFallbackAttempt)
         {
             WinRmAttemptResult result = await transportClient.AttemptAsync(
                 target,
                 transport,
                 RemainingAttemptTimeout(target.ProbeTimeout, startedAt),
+                attemptNumber,
+                isFallbackAttempt,
                 linkedSource.Token);
 
             if (result.FailureCategory == WinRmFailureCategory.Cancelled

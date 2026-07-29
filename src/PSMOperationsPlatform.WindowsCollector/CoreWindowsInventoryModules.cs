@@ -10,18 +10,34 @@ internal static class CoreWindowsInventoryCommands
         new Dictionary<string, object?>
         {
             ["ClassName"] = "Win32_ComputerSystem",
-            ["Property"] = new[] { "Name", "Domain", "Manufacturer", "Model" },
+            ["Property"] = new[] { "Name", "Domain", "DomainRole", "Manufacturer", "Model", "SystemType" },
         },
-        ["Name", "Domain", "Manufacturer", "Model"]);
+        ["Name", "Domain", "DomainRole", "Manufacturer", "Model", "SystemType"]);
+
+    internal static readonly WinRmCommandDefinition ComputerSystemProduct = new(
+        "Get-CimInstance",
+        new Dictionary<string, object?>
+        {
+            ["ClassName"] = "Win32_ComputerSystemProduct",
+            ["Property"] = new[] { "UUID", "IdentifyingNumber" },
+        },
+        ["UUID", "IdentifyingNumber"]);
 
     internal static readonly WinRmCommandDefinition Bios = new(
         "Get-CimInstance",
         new Dictionary<string, object?>
         {
             ["ClassName"] = "Win32_BIOS",
-            ["Property"] = new[] { "SerialNumber" },
+            ["Property"] = new[]
+            {
+                "Manufacturer", "SMBIOSBIOSVersion", "Version", "ReleaseDate",
+                "SerialNumber", "SMBIOSMajorVersion", "SMBIOSMinorVersion",
+            },
         },
-        ["SerialNumber"]);
+        [
+            "Manufacturer", "SMBIOSBIOSVersion", "Version", "ReleaseDate",
+            "SerialNumber", "SMBIOSMajorVersion", "SMBIOSMinorVersion",
+        ]);
 
     internal static readonly WinRmCommandDefinition OperatingSystem = new(
         "Get-CimInstance",
@@ -34,6 +50,13 @@ internal static class CoreWindowsInventoryCommands
                 "Version",
                 "BuildNumber",
                 "OSArchitecture",
+                "ProductType",
+                "OperatingSystemSKU",
+                "InstallationType",
+                "SystemDrive",
+                "WindowsDirectory",
+                "Locale",
+                "CurrentTimeZone",
                 "InstallDate",
                 "LastBootUpTime",
             },
@@ -43,6 +66,13 @@ internal static class CoreWindowsInventoryCommands
             "Version",
             "BuildNumber",
             "OSArchitecture",
+            "ProductType",
+            "OperatingSystemSKU",
+            "InstallationType",
+            "SystemDrive",
+            "WindowsDirectory",
+            "Locale",
+            "CurrentTimeZone",
             "InstallDate",
             "LastBootUpTime",
         ]);
@@ -106,6 +136,38 @@ internal static class WindowsInventoryRecordNormalizer
         }
 
         return NormalizedLength(text, propertyName, maximumLength);
+    }
+
+    internal static string RequiredNormalizedString(
+        WinRmCommandRecord record,
+        string propertyName,
+        int maximumLength)
+    {
+        object? value = Property(record, propertyName);
+        if (value is not string text || string.IsNullOrWhiteSpace(text))
+        {
+            throw new WindowsInventoryValidationException(
+                $"Property '{propertyName}' is required.");
+        }
+        return CollapseWhitespace(text, propertyName, maximumLength);
+    }
+
+    internal static string? OptionalNormalizedString(
+        WinRmCommandRecord record,
+        string propertyName,
+        int maximumLength)
+    {
+        object? value = Property(record, propertyName);
+        if (value is null || value is string text && string.IsNullOrWhiteSpace(text))
+        {
+            return null;
+        }
+        if (value is not string stringValue)
+        {
+            throw new WindowsInventoryValidationException(
+                $"Property '{propertyName}' must be a string when present.");
+        }
+        return CollapseWhitespace(stringValue, propertyName, maximumLength);
     }
 
     internal static DateTime? OptionalDateTime(
@@ -233,6 +295,23 @@ internal static class WindowsInventoryRecordNormalizer
         return (int)value.Value;
     }
 
+    internal static int? OptionalInt32(
+        WinRmCommandRecord record,
+        string propertyName)
+    {
+        long? value = OptionalInteger(record, propertyName);
+        if (!value.HasValue)
+        {
+            return null;
+        }
+        if (value < int.MinValue || value > int.MaxValue)
+        {
+            throw new WindowsInventoryValidationException(
+                $"Property '{propertyName}' must be an Int32 value.");
+        }
+        return (int)value.Value;
+    }
+
     internal static int RequiredNonNegativeInt32(
         WinRmCommandRecord record,
         string propertyName) =>
@@ -343,7 +422,6 @@ internal static class WindowsInventoryRecordNormalizer
             throw new WindowsInventoryValidationException(
                 $"Property '{propertyName}' contains leading or trailing whitespace.");
         }
-
         if (value.Length > maximumLength)
         {
             throw new WindowsInventoryValidationException(
@@ -351,6 +429,22 @@ internal static class WindowsInventoryRecordNormalizer
         }
 
         return value;
+    }
+
+    private static string CollapseWhitespace(
+        string value,
+        string propertyName,
+        int maximumLength)
+    {
+        string normalized = string.Join(
+            ' ',
+            value.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        if (normalized.Length > maximumLength)
+        {
+            throw new WindowsInventoryValidationException(
+                $"Property '{propertyName}' exceeds maximum length {maximumLength.ToString(CultureInfo.InvariantCulture)}.");
+        }
+        return normalized;
     }
 }
 
@@ -369,24 +463,30 @@ internal sealed class ComputerInventoryModule(IComputerInventoryStore store)
             await context.Session.InvokeAsync(
                 CoreWindowsInventoryCommands.ComputerSystem,
                 context.CancellationToken);
-        IReadOnlyList<WinRmCommandRecord> biosRecords =
+        IReadOnlyList<WinRmCommandRecord> productRecords =
             await context.Session.InvokeAsync(
-                CoreWindowsInventoryCommands.Bios,
+                CoreWindowsInventoryCommands.ComputerSystemProduct,
                 context.CancellationToken);
 
         WinRmCommandRecord computer = WindowsInventoryRecordNormalizer.Single(
             computerRecords,
             "Computer");
-        WinRmCommandRecord bios = WindowsInventoryRecordNormalizer.Single(
-            biosRecords,
-            "BIOS");
+        WinRmCommandRecord product = WindowsInventoryRecordNormalizer.Single(
+            productRecords,
+            "Computer System Product");
         var state = new ComputerInventoryState(
             WindowsInventoryRecordNormalizer.RequiredString(computer, "Name", 255),
             null,
             WindowsInventoryRecordNormalizer.OptionalString(computer, "Domain", 255),
             WindowsInventoryRecordNormalizer.OptionalString(computer, "Manufacturer", 255),
             WindowsInventoryRecordNormalizer.OptionalString(computer, "Model", 255),
-            WindowsInventoryRecordNormalizer.OptionalString(bios, "SerialNumber", 255));
+            InventoryPlaceholderNormalizer.Serial(
+                WindowsInventoryRecordNormalizer.OptionalString(product, "IdentifyingNumber", 255)),
+            WindowsInventoryRecordNormalizer.OptionalNonNegativeInt32(computer, "DomainRole"),
+            WindowsInventoryRecordNormalizer.OptionalString(computer, "SystemType", 100),
+            null,
+            InventoryPlaceholderNormalizer.Uuid(
+                WindowsInventoryRecordNormalizer.OptionalString(product, "UUID", 50)));
 
         await store.UpsertAsync(
             context.ManagedServer.TargetId,

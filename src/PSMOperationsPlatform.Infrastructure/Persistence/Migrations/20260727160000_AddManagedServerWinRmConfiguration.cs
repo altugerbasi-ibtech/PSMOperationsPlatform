@@ -42,8 +42,9 @@ public partial class AddManagedServerWinRmConfiguration : Migration
 
         migrationBuilder.Sql(
             """
+            EXEC(N'
             UPDATE [configuration].[ManagedServer]
-            SET [WinRmTransportMode] = N'Auto',
+            SET [WinRmTransportMode] = N''Auto'',
                 [WinRmHttpsPort] = 5986,
                 [WinRmHttpPort] = 5985,
                 [WinRmProbeTimeoutSeconds] = 10
@@ -51,6 +52,7 @@ public partial class AddManagedServerWinRmConfiguration : Migration
                OR [WinRmHttpsPort] IS NULL
                OR [WinRmHttpPort] IS NULL
                OR [WinRmProbeTimeoutSeconds] IS NULL;
+            ');
             """);
 
         migrationBuilder.AlterColumn<int>(

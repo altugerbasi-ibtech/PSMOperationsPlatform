@@ -1,331 +1,199 @@
 using Microsoft.Extensions.Logging.Abstractions;
-using PSMOperationsPlatform.Domain.Enums;
 using PSMOperationsPlatform.Infrastructure.Persistence;
 
 namespace PSMOperationsPlatform.WindowsCollector.Tests;
 
 public sealed class NetworkInventoryModuleTests
 {
-    private const string InterfaceGuid =
-        "4f36f9db-5c17-43f9-93e2-2c7ef9012364";
+    private const string GuidValue = "4f36f9db-5c17-43f9-93e2-2c7ef9012364";
 
     [Fact]
-    public async Task Module_builds_one_related_network_snapshot()
+    public void Adapter_prefers_guid_and_normalizes_mac()
     {
-        var store = new NetworkStore();
-        var session = new NetworkSession(
-            [
-                AdapterRecord(
-                    $"{{{InterfaceGuid.ToUpperInvariant()}}}",
-                    12),
-            ],
-            [
-                AddressRecord(12, "192.0.2.10", 24),
-                AddressRecord(12, "198.51.100.7", 32),
-            ]);
+        var adapter = Assert.Single(NetworkAdapterInventoryNormalizer.Normalize(
+            [Adapter(("GUID", $"{{{GuidValue.ToUpperInvariant()}}}"),
+                ("MACAddress", "00-11-22-33-44-55"))]));
 
-        await new NetworkInventoryModule(store).ExecuteAsync(Context(session));
+        Assert.Equal($"GUID:{GuidValue}", adapter.AdapterKey);
+        Assert.Equal("00:11:22:33:44:55", adapter.MacAddress);
+    }
 
+    [Fact]
+    public void Adapter_uses_mac_then_pnp_and_rejects_placeholder_mac()
+    {
         Assert.Equal(
-            [NetworkInventoryCommands.Adapters, NetworkInventoryCommands.Ipv4Addresses],
-            session.Commands);
-        NetworkAdapterInventoryItem adapter = Assert.Single(store.Snapshot!.Adapters);
-        Assert.Equal(InterfaceGuid, adapter.StableSourceKey);
-        Assert.Equal("Ethernet", adapter.Name);
-        Assert.Equal("00-11-22-33-44-55", adapter.MacAddress);
-        Assert.Equal("Up", adapter.OperationalStatus);
-        Assert.Equal(1_000_000_000, adapter.LinkSpeedBitsPerSecond);
-        Assert.All(
-            store.Snapshot.Ipv4Addresses,
-            address => Assert.Equal(
-                InterfaceGuid,
-                address.NetworkAdapterStableSourceKey));
+            "MAC:00:11:22:33:44:55",
+            Assert.Single(NetworkAdapterInventoryNormalizer.Normalize(
+                [Adapter(("GUID", null), ("MACAddress", "001122334455"))])).AdapterKey);
+        Assert.Equal(
+            @"PNP:PCI\VEN_1234",
+            Assert.Single(NetworkAdapterInventoryNormalizer.Normalize(
+                [Adapter(("GUID", null), ("MACAddress", "00-00-00-00-00-00"),
+                    ("PNPDeviceID", @"PCI\VEN_1234"))])).AdapterKey);
     }
 
     [Fact]
-    public async Task Successful_empty_collection_sends_one_empty_snapshot()
+    public void Adapter_fallback_is_deterministic_and_order_independent()
     {
-        var store = new NetworkStore();
-
-        await new NetworkInventoryModule(store).ExecuteAsync(
-            Context(new NetworkSession([], [])));
-
-        Assert.Empty(store.Snapshot!.Adapters);
-        Assert.Empty(store.Snapshot.Ipv4Addresses);
-        Assert.Equal(1, store.CallCount);
+        WinRmCommandRecord a = Adapter(
+            ("GUID", null), ("MACAddress", null), ("PNPDeviceID", null),
+            ("Name", "A"));
+        WinRmCommandRecord b = Adapter(
+            ("GUID", null), ("MACAddress", null), ("PNPDeviceID", null),
+            ("Name", "B"));
+        string[] first = NetworkAdapterInventoryNormalizer.Normalize([a, b])
+            .Select(item => item.AdapterKey).ToArray();
+        string[] second = NetworkAdapterInventoryNormalizer.Normalize([b, a])
+            .Select(item => item.AdapterKey).ToArray();
+        Assert.Equal(first, second);
+        Assert.All(first, key => Assert.StartsWith("FALLBACK:", key));
     }
 
     [Fact]
-    public async Task Observable_down_disabled_virtual_and_special_ipv4_state_is_included()
+    public void Adapter_duplicate_key_fails_and_empty_is_valid()
     {
-        const string disconnectedGuid =
-            "a6f1e1b7-8ac8-45b6-9d64-b69427be4770";
-        const string disabledGuid =
-            "55353bbc-f084-4438-9e85-31f195f19948";
-        const string virtualGuid =
-            "7b690503-50f6-4886-a876-6e68c53f1e26";
-        var store = new NetworkStore();
-        var session = new NetworkSession(
-            [
-                AdapterRecord(
-                    disconnectedGuid,
-                    20,
-                    name: "Disconnected",
-                    description: "Disconnected Adapter",
-                    operationalStatus: 2),
-                AdapterRecord(
-                    disabledGuid,
-                    21,
-                    name: "Disabled",
-                    description: "Disabled Adapter",
-                    operationalStatus: 2),
-                AdapterRecord(
-                    virtualGuid,
-                    22,
-                    name: "vEthernet",
-                    description: "Hyper-V Virtual Ethernet Adapter",
-                    operationalStatus: 1),
-            ],
-            [
-                AddressRecord(20, "169.254.10.20", 16),
-                AddressRecord(22, "127.0.0.1", 8),
-            ]);
+        Assert.Empty(NetworkAdapterInventoryNormalizer.Normalize([]));
+        Assert.Throws<WindowsInventoryValidationException>(() =>
+            NetworkAdapterInventoryNormalizer.Normalize([Adapter(), Adapter()]));
+    }
 
-        await new NetworkInventoryModule(store).ExecuteAsync(Context(session));
+    [Fact]
+    public void Ipv4_expands_arrays_and_uses_adapter_plus_address_identity()
+    {
+        Ipv4AddressInventoryItem[] items = Ipv4InventoryNormalizer.Normalize(
+            [Configuration(
+                ("IPAddress", new[] { "192.0.2.10", "198.51.100.7" }),
+                ("IPSubnet", new[] { "255.255.255.0", "255.255.255.255" }),
+                ("DefaultIPGateway", new[] { "192.0.2.1" }),
+                ("DHCPEnabled", true))]);
 
-        Assert.Collection(
-            store.Snapshot!.Adapters,
-            adapter =>
+        Assert.Equal(2, items.Length);
+        Assert.All(items, item => Assert.Equal($"GUID:{GuidValue}", item.AdapterKey));
+        Assert.Contains(items, item =>
+            item.Ipv4Key == $"GUID:{GuidValue}|192.0.2.10" &&
+            item.PrefixLength == 24 && item.DefaultGateway == "192.0.2.1" &&
+            item.IsDhcp == true);
+    }
+
+    [Fact]
+    public void Same_address_on_different_adapters_is_distinct()
+    {
+        Ipv4AddressInventoryItem[] items = Ipv4InventoryNormalizer.Normalize(
+            [Configuration(), Configuration(("SettingID", Guid.NewGuid().ToString("D")))]);
+        Assert.Equal(2, items.Length);
+        Assert.Equal(2, items.Select(item => item.Ipv4Key).Distinct().Count());
+    }
+
+    [Fact]
+    public void Ipv4_duplicate_gateway_prefix_and_empty_rules_are_validated()
+    {
+        Assert.Empty(Ipv4InventoryNormalizer.Normalize([]));
+        Assert.Throws<WindowsInventoryValidationException>(() =>
+            Ipv4InventoryNormalizer.Normalize(
+                [Configuration(
+                    ("IPAddress", new[] { "192.0.2.10", "192.0.2.10" }),
+                    ("IPSubnet", new[] { "255.255.255.0", "255.255.255.0" }))]));
+        Assert.Throws<WindowsInventoryValidationException>(() =>
+            Ipv4InventoryNormalizer.Normalize(
+                [Configuration(("IPSubnet", new[] { "255.0.255.0" }))]));
+        Assert.Throws<WindowsInventoryValidationException>(() =>
+            Ipv4InventoryNormalizer.Normalize(
+                [Configuration(("DefaultIPGateway", new[] { "not-an-ip" }))]));
+    }
+
+    [Fact]
+    public void Ipv4_order_does_not_change_logical_result()
+    {
+        WinRmCommandRecord a = Configuration();
+        WinRmCommandRecord b = Configuration(
+            ("SettingID", Guid.NewGuid().ToString("D")),
+            ("IPAddress", new[] { "198.51.100.8" }));
+        string[] first = Ipv4InventoryNormalizer.Normalize([a, b])
+            .Select(item => item.Ipv4Key).ToArray();
+        string[] second = Ipv4InventoryNormalizer.Normalize([b, a])
+            .Select(item => item.Ipv4Key).ToArray();
+        Assert.Equal(first, second);
+    }
+
+    [Fact]
+    public async Task Independent_modules_reuse_supplied_session_and_ps51_CIM_contracts()
+    {
+        var session = new TestSession(
+            new Dictionary<string, IReadOnlyList<WinRmCommandRecord>>
             {
-                Assert.Equal(disconnectedGuid, adapter.StableSourceKey);
-                Assert.Equal("Down", adapter.OperationalStatus);
-            },
-            adapter =>
-            {
-                Assert.Equal(disabledGuid, adapter.StableSourceKey);
-                Assert.Equal("Disabled", adapter.Name);
-            },
-            adapter =>
-            {
-                Assert.Equal(virtualGuid, adapter.StableSourceKey);
-                Assert.Contains("Virtual", adapter.InterfaceDescription);
+                ["Win32_NetworkAdapter"] = [Adapter()],
+                ["Win32_NetworkAdapterConfiguration"] = [Configuration()],
             });
-        Assert.Contains(
-            store.Snapshot.Ipv4Addresses,
-            address => address.Address == "169.254.10.20");
-        Assert.Contains(
-            store.Snapshot.Ipv4Addresses,
-            address => address.Address == "127.0.0.1");
-    }
+        InventoryModuleContext context = Context(session);
 
-    [Fact]
-    public async Task Duplicate_adapter_guid_fails_before_store()
-    {
-        var store = new NetworkStore();
+        var adapterResult = await new NetworkAdapterInventoryModule()
+            .CollectAsync(context, default);
+        var ipv4Result = await new Ipv4InventoryModule()
+            .CollectAsync(context, default);
 
-        await Assert.ThrowsAsync<WindowsInventoryValidationException>(
-            () => new NetworkInventoryModule(store).ExecuteAsync(
-                Context(
-                    new NetworkSession(
-                        [
-                            AdapterRecord(InterfaceGuid, 12),
-                            AdapterRecord(
-                                $"{{{InterfaceGuid.ToUpperInvariant()}}}",
-                                13),
-                        ],
-                        []))));
-
-        Assert.Null(store.Snapshot);
-    }
-
-    [Fact]
-    public async Task Unknown_adapter_reference_fails_before_store()
-    {
-        var store = new NetworkStore();
-
-        await Assert.ThrowsAsync<WindowsInventoryValidationException>(
-            () => new NetworkInventoryModule(store).ExecuteAsync(
-                Context(
-                    new NetworkSession(
-                        [AdapterRecord(InterfaceGuid, 12)],
-                        [AddressRecord(99, "192.0.2.10", 24)]))));
-
-        Assert.Null(store.Snapshot);
-    }
-
-    [Fact]
-    public async Task Duplicate_ipv4_identity_fails_before_store()
-    {
-        var store = new NetworkStore();
-
-        await Assert.ThrowsAsync<WindowsInventoryValidationException>(
-            () => new NetworkInventoryModule(store).ExecuteAsync(
-                Context(
-                    new NetworkSession(
-                        [AdapterRecord(InterfaceGuid, 12)],
-                        [
-                            AddressRecord(12, "192.0.2.10", 24),
-                            AddressRecord(12, "192.0.2.10", 24),
-                        ]))));
-
-        Assert.Null(store.Snapshot);
-    }
-
-    [Theory]
-    [InlineData("2001:db8::1", 64)]
-    [InlineData("::ffff:192.0.2.1", 24)]
-    [InlineData("192.000.002.001", 24)]
-    [InlineData("192.0.2.1", 33)]
-    public async Task Invalid_ipv4_or_prefix_fails_before_store(
-        string address,
-        int prefixLength)
-    {
-        var store = new NetworkStore();
-
-        await Assert.ThrowsAsync<WindowsInventoryValidationException>(
-            () => new NetworkInventoryModule(store).ExecuteAsync(
-                Context(
-                    new NetworkSession(
-                        [AdapterRecord(InterfaceGuid, 12)],
-                        [AddressRecord(12, address, prefixLength)]))));
-
-        Assert.Null(store.Snapshot);
-    }
-
-    [Fact]
-    public async Task Cancellation_propagates_without_store_call()
-    {
-        using var cancellation = new CancellationTokenSource();
-        cancellation.Cancel();
-        var store = new NetworkStore();
-
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => new NetworkInventoryModule(store).ExecuteAsync(
-                Context(new NetworkSession([], []), cancellation.Token)));
-
-        Assert.Null(store.Snapshot);
-    }
-
-    [Fact]
-    public void Projections_are_explicit_and_ipv4_query_excludes_ipv6()
-    {
+        Assert.True(adapterResult.IsSuccessful);
+        Assert.True(ipv4Result.IsSuccessful);
         Assert.Equal(
-            [
-                "InterfaceGuid",
-                "InterfaceIndex",
-                "Name",
-                "InterfaceDescription",
-                "PermanentAddress",
-                "Speed",
-                "InterfaceOperationalStatus",
-            ],
-            NetworkInventoryCommands.Adapters.PropertyNames);
-        Assert.Equal(
-            ["InterfaceIndex", "IPAddress", "PrefixLength"],
-            NetworkInventoryCommands.Ipv4Addresses.PropertyNames);
-        Assert.Equal(
-            "AddressFamily = 2",
-            NetworkInventoryCommands.Ipv4Addresses.Parameters["Filter"]);
-        Assert.Equal(
-            "MSFT_NetAdapter",
-            NetworkInventoryCommands.Adapters.Parameters["ClassName"]);
-        Assert.Equal(
-            "MSFT_NetIPAddress",
-            NetworkInventoryCommands.Ipv4Addresses.Parameters["ClassName"]);
-        Assert.DoesNotContain(
-            "AddressFamily",
-            NetworkInventoryCommands.Ipv4Addresses.PropertyNames);
+            ["Win32_NetworkAdapter", "Win32_NetworkAdapterConfiguration"],
+            session.Classes);
         Assert.DoesNotContain("*", NetworkInventoryCommands.Adapters.PropertyNames);
         Assert.DoesNotContain("*", NetworkInventoryCommands.Ipv4Addresses.PropertyNames);
     }
 
-    private static WindowsInventoryExecutionContext Context(
-        IWinRmCommandSession session,
-        CancellationToken cancellationToken = default) =>
-        new(
-            new WindowsTarget(
-                Guid.NewGuid(),
-                "network.ae.local",
-                WinRmTransportMode.Auto,
-                5986,
-                5985,
-                TimeSpan.FromSeconds(10)),
-            session,
-            cancellationToken,
-            TimeProvider.System,
-            NullLogger.Instance,
-            Guid.NewGuid());
+    private static InventoryModuleContext Context(IWinRmCommandSession session) =>
+        new(Guid.NewGuid(), "network.ae.local", Guid.NewGuid(), session,
+            TimeProvider.System, NullLogger.Instance);
 
-    private static WinRmCommandRecord AdapterRecord(
-        string interfaceGuid,
-        int interfaceIndex,
-        string name = "Ethernet",
-        string description = "Network Adapter",
-        uint operationalStatus = 1) =>
-        Record(
-            ("InterfaceGuid", interfaceGuid),
-            ("InterfaceIndex", interfaceIndex),
-            ("Name", name),
-            ("InterfaceDescription", description),
-            ("PermanentAddress", "00-11-22-33-44-55"),
-            ("Speed", 1_000_000_000UL),
-            ("InterfaceOperationalStatus", operationalStatus));
-
-    private static WinRmCommandRecord AddressRecord(
-        int interfaceIndex,
-        string address,
-        int prefixLength) =>
-        Record(
-            ("InterfaceIndex", interfaceIndex),
-            ("IPAddress", address),
-            ("PrefixLength", prefixLength));
-
-    private static WinRmCommandRecord Record(
-        params (string Name, object? Value)[] values) =>
-        new(new Dictionary<string, object?>(
-            values.ToDictionary(value => value.Name, value => value.Value),
-            StringComparer.OrdinalIgnoreCase));
-
-    private sealed class NetworkSession(
-        IReadOnlyList<WinRmCommandRecord> adapters,
-        IReadOnlyList<WinRmCommandRecord> addresses) : IWinRmCommandSession
-    {
-        internal List<WinRmCommandDefinition> Commands { get; } = [];
-
-        public bool IsUsable => true;
-
-        public Task OpenAsync(CancellationToken cancellationToken) =>
-            Task.CompletedTask;
-
-        public Task<IReadOnlyList<WinRmCommandRecord>> InvokeAsync(
-            WinRmCommandDefinition command,
-            CancellationToken cancellationToken)
+    private static WinRmCommandRecord Adapter(
+        params (string Name, object? Value)[] overrides) =>
+        With(new Dictionary<string, object?>
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            Commands.Add(command);
-            return Task.FromResult(
-                ReferenceEquals(command, NetworkInventoryCommands.Adapters)
-                    ? adapters
-                    : addresses);
-        }
+            ["GUID"] = GuidValue, ["InterfaceIndex"] = 12, ["Name"] = "Ethernet",
+            ["NetConnectionID"] = "Ethernet", ["Description"] = "Adapter",
+            ["MACAddress"] = "00:11:22:33:44:55", ["Manufacturer"] = "Contoso",
+            ["PhysicalAdapter"] = true, ["NetConnectionStatus"] = 2,
+            ["Speed"] = 1_000_000_000L, ["PNPDeviceID"] = @"PCI\VEN_1234",
+        }, overrides);
 
-        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
+    private static WinRmCommandRecord Configuration(
+        params (string Name, object? Value)[] overrides) =>
+        With(new Dictionary<string, object?>
+        {
+            ["SettingID"] = GuidValue, ["InterfaceIndex"] = 12,
+            ["MACAddress"] = "00:11:22:33:44:55",
+            ["IPAddress"] = new[] { "192.0.2.10" },
+            ["IPSubnet"] = new[] { "255.255.255.0" },
+            ["DefaultIPGateway"] = Array.Empty<string>(),
+            ["DHCPEnabled"] = false,
+            ["FullDNSRegistrationEnabledForAllAddresses"] = true,
+        }, overrides);
+
+    private static WinRmCommandRecord With(
+        Dictionary<string, object?> values,
+        params (string Name, object? Value)[] overrides)
+    {
+        foreach (var (name, value) in overrides)
+        {
+            values[name] = value;
+        }
+        return new(values);
     }
 
-    private sealed class NetworkStore : INetworkSnapshotStore
+    private sealed class TestSession(
+        IReadOnlyDictionary<string, IReadOnlyList<WinRmCommandRecord>> results)
+        : IWinRmCommandSession
     {
-        internal NetworkInventorySnapshot? Snapshot { get; private set; }
-        internal int CallCount { get; private set; }
-
-        public Task ReplaceAsync(
-            Guid managedServerId,
-            NetworkInventorySnapshot snapshot,
-            CancellationToken cancellationToken)
+        internal List<string> Classes { get; } = [];
+        public bool IsUsable => true;
+        public Task OpenAsync(CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task<IReadOnlyList<WinRmCommandRecord>> InvokeAsync(
+            WinRmCommandDefinition command, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            Snapshot = snapshot;
-            CallCount++;
-            return Task.CompletedTask;
+            string className = Assert.IsType<string>(command.Parameters["ClassName"]);
+            Classes.Add(className);
+            return Task.FromResult(results[className]);
         }
+        public ValueTask DisposeAsync() => ValueTask.CompletedTask;
     }
 }

@@ -105,6 +105,27 @@ public sealed class ConnectivityResultPersistenceTests
     }
 
     [Fact]
+    public async Task KerberosSpnMismatchTemporarilyPersistsAsAuthenticationFailure()
+    {
+        ManagedServer server = Server();
+        var store = new TestStore(server);
+
+        ConnectivityPersistenceResult outcome = await CreatePersistence(store)
+            .ApplyAsync(
+                Target(server),
+                Failure(server.Id, WinRmFailureCategory.KerberosSpnMismatch),
+                CancellationToken.None);
+
+        Assert.Equal(
+            ConnectivityPersistenceOutcome.AppliedFailure,
+            outcome.Outcome);
+        Assert.Equal(
+            ConnectivityFailureCategory.AuthenticationFailure,
+            server.LastConnectivityFailureCategory);
+        Assert.Equal(1, store.SaveAttempts);
+    }
+
+    [Fact]
     public async Task CancellationIsNoOpAndDoesNotLoadOrSave()
     {
         var store = new TestStore(Server());

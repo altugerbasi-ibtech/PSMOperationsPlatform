@@ -22,7 +22,9 @@ internal sealed class WindowsTargetProvider(OperationsDbContext context)
             .Where(target =>
                 target.IsEnabled
                 && (target.NextConnectivityAttemptAt == null
-                    || target.NextConnectivityAttemptAt <= currentTime))
+                    || target.NextConnectivityAttemptAt <= currentTime
+                    || target.NextInventoryAttemptAt == null
+                    || target.NextInventoryAttemptAt <= currentTime))
             .Select(target => new WindowsTarget(
                 target.Id,
                 target.Fqdn,
@@ -30,7 +32,9 @@ internal sealed class WindowsTargetProvider(OperationsDbContext context)
                 target.WinRmHttpsPort,
                 target.WinRmHttpPort,
                 TimeSpan.FromSeconds(target.WinRmProbeTimeoutSeconds),
-                target.RowVersion))
+                target.RowVersion,
+                target.NextInventoryAttemptAt == null
+                    || target.NextInventoryAttemptAt <= currentTime))
             .ToListAsync(cancellationToken);
     }
 }

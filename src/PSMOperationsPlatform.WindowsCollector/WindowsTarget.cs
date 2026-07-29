@@ -9,4 +9,5 @@ internal sealed record WindowsTarget(
     int HttpsPort,
     int HttpPort,
     TimeSpan ProbeTimeout,
-    byte[]? RowVersion = null);
+    byte[]? RowVersion = null,
+    bool IsInventoryDue = true);

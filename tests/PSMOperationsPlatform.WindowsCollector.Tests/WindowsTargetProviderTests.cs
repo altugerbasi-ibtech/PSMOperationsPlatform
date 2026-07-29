@@ -41,6 +41,9 @@ public sealed class WindowsTargetProviderTests
         SetNextAttempt(database.Context, pastDue, CurrentTime.AddSeconds(-1));
         SetNextAttempt(database.Context, equalDue, CurrentTime);
         SetNextAttempt(database.Context, futureDue, CurrentTime.AddSeconds(1));
+        futureDue.ApplyInventorySuccess(
+            CurrentTime.AddHours(-1),
+            CurrentTime.AddSeconds(1));
         SetNextAttempt(database.Context, disabledPast, CurrentTime.AddSeconds(-1));
         await database.Context.SaveChangesAsync();
         database.Context.ChangeTracker.Clear();
@@ -104,6 +107,7 @@ public sealed class WindowsTargetProviderTests
                 "HostName",
                 "HttpPort",
                 "HttpsPort",
+                "IsInventoryDue",
                 "ProbeTimeout",
                 "RowVersion",
                 "TargetId",

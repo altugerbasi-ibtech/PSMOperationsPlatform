@@ -6,19 +6,37 @@ internal interface IWinRmTransportClient
         WindowsTarget target,
         WinRmTransport transport,
         TimeSpan timeout,
+        int attemptNumber,
+        bool isFallbackAttempt,
         CancellationToken cancellationToken);
 }
 
 internal sealed class WinRmTransportClient(
     IWinRmSessionFactory sessionFactory,
-    TimeProvider timeProvider) : IWinRmTransportClient
+    TimeProvider timeProvider,
+    ILogger<WinRmTransportClient> logger) : IWinRmTransportClient
 {
     public async Task<WinRmAttemptResult> AttemptAsync(
         WindowsTarget target,
         WinRmTransport transport,
         TimeSpan timeout,
+        int attemptNumber,
+        bool isFallbackAttempt,
         CancellationToken cancellationToken)
     {
+        int port = transport == WinRmTransport.Https
+            ? target.HttpsPort
+            : target.HttpPort;
+        WindowsCollectorLog.WinRmConnectionAttemptStarted(
+            logger,
+            target.HostName,
+            transport.ToString(),
+            port,
+            "Kerberos",
+            true,
+            timeout.TotalSeconds,
+            attemptNumber,
+            isFallbackAttempt);
         long startedAt = timeProvider.GetTimestamp();
         using var timeoutSource =
             new CancellationTokenSource(timeout, timeProvider);
@@ -57,13 +75,28 @@ internal sealed class WinRmTransportClient(
         WinRmAttemptResult Result(
             bool isSuccessful,
             WinRmFailureCategory failureCategory,
-            IWinRmCommandSession? session = null) =>
-            new(
+            IWinRmCommandSession? session = null)
+        {
+            TimeSpan duration = timeProvider.GetElapsedTime(startedAt);
+            WindowsCollectorLog.WinRmConnectionAttemptCompleted(
+                logger,
+                target.HostName,
+                transport.ToString(),
+                port,
+                "Kerberos",
+                true,
+                attemptNumber,
+                isFallbackAttempt,
+                isSuccessful,
+                failureCategory.ToString(),
+                duration.TotalMilliseconds);
+            return new(
                 transport,
                 isSuccessful,
                 failureCategory,
-                timeProvider.GetElapsedTime(startedAt),
+                duration,
                 session);
+        }
     }
 
     private static async ValueTask DisposeFailedSessionAsync(

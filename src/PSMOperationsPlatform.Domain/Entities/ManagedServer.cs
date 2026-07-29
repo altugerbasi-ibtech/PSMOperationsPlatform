@@ -33,6 +33,8 @@ public sealed class ManagedServer : Entity
         CreatedAt = createdAt;
         UpdatedAt = createdAt;
         LastConnectivityState = ConnectivityState.Unknown;
+        ConsecutiveInventoryFailures = 0;
+        InventoryVersion = 0;
         RowVersion = null!;
     }
 
@@ -74,6 +76,18 @@ public sealed class ManagedServer : Entity
     public int ConsecutiveConnectivityFailures { get; private set; }
 
     public ConnectivityFailureCategory? LastConnectivityFailureCategory { get; private set; }
+
+    public DateTime? LastInventoryAttemptAt { get; private set; }
+
+    public DateTime? LastInventorySuccessAt { get; private set; }
+
+    public DateTime? NextInventoryAttemptAt { get; private set; }
+
+    public int ConsecutiveInventoryFailures { get; private set; }
+
+    public string? LastInventoryFailureCategory { get; private set; }
+
+    public long InventoryVersion { get; private set; }
 
     public byte[] RowVersion { get; private set; } = null!;
 
@@ -139,6 +153,35 @@ public sealed class ManagedServer : Entity
             failureCategory,
             nameof(failureCategory));
         NextConnectivityAttemptAt = nextAttemptAt;
+    }
+
+    public void ApplyInventorySuccess(DateTime completedAt, DateTime nextAttemptAt)
+    {
+        EnsureCompletedAttempt(completedAt, nextAttemptAt);
+        LastInventoryAttemptAt = completedAt;
+        LastInventorySuccessAt = completedAt;
+        NextInventoryAttemptAt = nextAttemptAt;
+        ConsecutiveInventoryFailures = 0;
+        LastInventoryFailureCategory = null;
+        InventoryVersion = checked(InventoryVersion + 1);
+    }
+
+    public void ApplyInventoryFailure(
+        DateTime completedAt,
+        string failureCategory,
+        DateTime nextAttemptAt)
+    {
+        EnsureCompletedAttempt(completedAt, nextAttemptAt);
+        LastInventoryAttemptAt = completedAt;
+        NextInventoryAttemptAt = nextAttemptAt;
+        ConsecutiveInventoryFailures =
+            ConsecutiveInventoryFailures == int.MaxValue
+                ? int.MaxValue
+                : ConsecutiveInventoryFailures + 1;
+        LastInventoryFailureCategory = InventoryEntityGuard.Required(
+            failureCategory,
+            80,
+            nameof(failureCategory));
     }
 
     private void EnsureNotBeforeCreation(DateTime value)

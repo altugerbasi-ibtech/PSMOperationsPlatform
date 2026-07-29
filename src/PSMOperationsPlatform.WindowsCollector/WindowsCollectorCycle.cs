@@ -115,7 +115,8 @@ internal sealed class WindowsCollectorCycle(
                     LogPersistenceOutcome(logger, persistenceResult);
 
                     if (persistenceResult.Outcome ==
-                        ConnectivityPersistenceOutcome.AppliedSuccess)
+                        ConnectivityPersistenceOutcome.AppliedSuccess
+                        && target.IsInventoryDue)
                     {
                         if (session is null)
                         {

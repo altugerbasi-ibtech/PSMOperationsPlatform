@@ -65,7 +65,7 @@ function New-ReadinessCheck {
 
 function Get-ReadinessStatus {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][object[]]$Checks)
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Checks)
 
     if ($Checks.Count -eq 0) { return 'NOT_READY' }
     if ($Checks | Where-Object { $_.Status -eq 'FAIL' }) { return 'NOT_READY' }
@@ -91,7 +91,7 @@ function Get-ReadinessExitCode {
 
 function Get-ReadinessCategories {
     [CmdletBinding()]
-    param([Parameter(Mandatory)][object[]]$Checks)
+    param([Parameter(Mandatory)][AllowEmptyCollection()][object[]]$Checks)
 
     @($script:ReadinessCategories | ForEach-Object {
         $name = $_
@@ -122,15 +122,29 @@ function New-InternalErrorCheck {
         -IsBlocking $true -IsMandatory $true -DurationMilliseconds 0
 }
 
+function ConvertTo-ReadinessCheckArray {
+    [CmdletBinding()]
+    param([AllowNull()][object]$Checks)
+
+    $normalized = New-Object System.Collections.Generic.List[object]
+    if ($null -ne $Checks) {
+        foreach ($check in $Checks) {
+            $normalized.Add($check)
+        }
+    }
+    return $normalized.ToArray()
+}
+
 function New-ReadinessManifest {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)][string]$Mode,
         [Parameter(Mandatory)][hashtable]$Context,
-        [Parameter(Mandatory)][object[]]$Checks,
+        [AllowNull()][AllowEmptyCollection()][object]$Checks,
         [Parameter(Mandatory)][datetime]$GeneratedAt
     )
-    $orderedChecks = @($Checks | Sort-Object Category, CheckId)
+    [object[]]$normalizedChecks = @(ConvertTo-ReadinessCheckArray -Checks $Checks)
+    [object[]]$orderedChecks = @($normalizedChecks | Sort-Object Category, CheckId)
     $overall = Get-ReadinessStatus -Checks $orderedChecks
     [pscustomobject][ordered]@{
         SchemaVersion = $script:ReadinessSchemaVersion
@@ -156,6 +170,49 @@ function New-ReadinessManifest {
     }
 }
 
+function Complete-ReadinessRun {
+    [CmdletBinding()]
+    param(
+        [Parameter(Mandatory)][string]$Mode,
+        [Parameter(Mandatory)][hashtable]$Context,
+        [AllowNull()][AllowEmptyCollection()][object]$Checks,
+        [Parameter(Mandatory)][datetime]$GeneratedAt,
+        [Parameter(Mandatory)][string]$OutputDirectory,
+        [bool]$GenerateJson,
+        [bool]$GenerateMarkdown
+    )
+
+    try {
+        $manifest = New-ReadinessManifest -Mode $Mode -Context $Context `
+            -Checks $Checks -GeneratedAt $GeneratedAt
+        if ($null -eq $manifest) {
+            throw [System.InvalidOperationException]::new('Manifest construction returned no result.')
+        }
+    } catch {
+        [object[]]$safeChecks = @(New-InternalErrorCheck `
+            -CheckId 'FRAMEWORK.MANIFEST.INTERNAL.ERROR' `
+            -Category 'CollectorHost' -Name 'Manifest construction')
+        return [pscustomobject][ordered]@{
+            Manifest = $null
+            Checks = $safeChecks
+            Paths = $null
+            OverallStatus = 'NOT_READY'
+            ExitCode = 2
+        }
+    }
+
+    $paths = Write-ReadinessReports -Manifest $manifest `
+        -OutputDirectory $OutputDirectory -GenerateJson $GenerateJson `
+        -GenerateMarkdown $GenerateMarkdown
+    [pscustomobject][ordered]@{
+        Manifest = $manifest
+        Checks = $manifest.Checks
+        Paths = $paths
+        OverallStatus = $manifest.OverallStatus
+        ExitCode = $manifest.ExitCode
+    }
+}
+
 function ConvertTo-ReadinessMarkdown {
     [CmdletBinding()]
     param([Parameter(Mandatory)][object]$Manifest)
@@ -178,6 +235,27 @@ function ConvertTo-ReadinessMarkdown {
     $lines.Add('## Overall Result')
     $lines.Add('')
     $lines.Add("**$($Manifest.OverallStatus)** (exit code $($Manifest.ExitCode))")
+    $modePlatformCheck = $Manifest.Checks |
+        Where-Object CheckId -eq 'HOST.OS.MODE' | Select-Object -First 1
+    $productionSupportCheck = $Manifest.Checks |
+        Where-Object CheckId -eq 'HOST.OS.SUPPORTED' | Select-Object -First 1
+    $lines.Add('')
+    $lines.Add('## Platform Classification')
+    $lines.Add('')
+    $lines.Add('| Readiness concept | Status | Interpretation |')
+    $lines.Add('|---|---|---|')
+    if ($modePlatformCheck) {
+        $modeSummary = ([string]$modePlatformCheck.Summary).Replace('|','\|')
+        $lines.Add("| Deployment readiness | $($modePlatformCheck.Status) | $modeSummary |")
+    } else {
+        $lines.Add('| Deployment readiness | NOT_APPLICABLE | Platform check unavailable. |')
+    }
+    if ($productionSupportCheck) {
+        $supportSummary = ([string]$productionSupportCheck.Summary).Replace('|','\|')
+        $lines.Add("| Production support | $($productionSupportCheck.Status) | $supportSummary |")
+    } else {
+        $lines.Add('| Production support | NOT_APPLICABLE | Platform check unavailable. |')
+    }
     $lines.Add('')
     $lines.Add('## Category Summary')
     $lines.Add('')

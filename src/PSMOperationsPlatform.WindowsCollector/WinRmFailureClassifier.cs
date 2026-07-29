@@ -7,12 +7,24 @@ namespace PSMOperationsPlatform.WindowsCollector;
 
 internal static class WinRmFailureClassifier
 {
+    internal const int KerberosSpnMismatchErrorCode =
+        unchecked((int)0x80090322);
+
     public static WinRmFailureCategory Classify(Exception exception)
     {
         ArgumentNullException.ThrowIfNull(exception);
 
         foreach (Exception candidate in Enumerate(exception))
         {
+            if (candidate.HResult == KerberosSpnMismatchErrorCode
+                || candidate is PSRemotingTransportException
+                {
+                    ErrorCode: KerberosSpnMismatchErrorCode
+                })
+            {
+                return WinRmFailureCategory.KerberosSpnMismatch;
+            }
+
             if (candidate is SocketException socketException)
             {
                 return socketException.SocketErrorCode switch

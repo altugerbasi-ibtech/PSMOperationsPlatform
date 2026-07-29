@@ -1,6 +1,6 @@
 ---
 title: ADR-006 — Inventory Ownership Boundaries
-version: 1.0.0
+version: 2.0.0
 status: Accepted
 owner: Architecture
 last_updated: 2026-07-27
@@ -38,13 +38,12 @@ timestamps; WP-005.3 must not introduce an inventory-only UTC convention.
 
 ## Decision
 
-### Logical ownership boundaries
+### Core inventory ownership boundary
 
-Inventory ownership is defined by logical snapshot, not by table. One module
-owns one coherent inventory boundary, which may contain multiple normalized
-tables. A module may modify tables inside its boundary, must not modify another
-boundary, and must not include unrelated boundaries in its transaction.
-Multiple owned tables do not violate module isolation.
+WP-007.1 supersedes the independent persistence-boundary decision for core
+Windows inventory. Computer, Operating System, Physical Memory, Processor,
+Disk, Volume, Network Adapter and IPv4 Address form one Core Inventory
+Snapshot. Modules collect and normalize only; they do not persist independently.
 
 ### Initial boundaries
 
@@ -52,16 +51,13 @@ Multiple owned tables do not violate module isolation.
 |---|---|
 | Computer Snapshot | Windows Computer Inventory |
 | Operating System Snapshot | Windows Operating System Inventory |
-| Memory Snapshot | Windows Memory Inventory |
+| Physical Memory collection | Windows Memory Inventory |
 | Processor Snapshot | Windows Processor Inventory collection |
 | Storage Snapshot | Windows Disk Inventory and Windows Volume Inventory |
 | Network Snapshot | Windows Network Adapter Inventory and Windows IPv4 Address Inventory |
 
-Storage ownership follows the implemented relationship. Without a Disk–Volume
-foreign key, they may use separate replace-all operations. If a real normalized
-relationship must remain coherent, they may share one Storage transaction. No
-artificial relationship is introduced merely to create an aggregate. The final
-behavior must be explicit in implemented data-model documentation.
+Disk and Volume remain separate normalized collections without an artificial
+relationship, but WP-007.1 replaces both inside the Core Inventory transaction.
 
 ### IPv4-only network inventory
 
@@ -116,10 +112,8 @@ Orphan IPv4 rows are invalid. Delete behavior is explicitly `Restrict` or
 `NoAction`; cascade delete is prohibited. The store explicitly deletes IPv4
 dependents before adapters.
 
-The Network Snapshot component may change only Network Adapter and IPv4 Address
-inventory. It may not change Computer, Operating System, Memory, Processor,
-Disk or Volume inventory. Its two-table transaction is one aggregate
-transaction, not a cross-module transaction.
+Adapter and IPv4 retain their ordered internal replacement and referential
+integrity inside the wider Core Inventory transaction.
 
 ### Current-state semantics
 
@@ -133,8 +127,9 @@ Inventory retains only last successful current state. History is out of scope.
 | Cancelled | Preserve prior snapshot |
 | Invalid | Preserve prior snapshot |
 
-Single-state inventory inserts when absent and explicitly updates when present.
-It never changes unrelated inventory.
+Computer and Operating System insert when absent and explicitly update when
+present. Every child collection is replaced as part of the complete Core
+Inventory Snapshot.
 
 ### Timestamp standard
 
@@ -153,26 +148,26 @@ transition plan. WP-005.3 does not perform that transition.
 
 ### Transaction and store boundaries
 
-Transactions open only during persistence, never during WinRM/remote
-collection. Each logical snapshot owns its transaction:
+All core modules collect, normalize and validate before persistence begins.
+The database transaction opens only after all remote work succeeds. One
+transaction updates Computer and Operating System and replaces Physical Memory,
+Processor, Disk, Volume, Network Adapter and IPv4 Address.
 
 ```text
-Processor Snapshot -> one processor replace-all transaction
-Network Snapshot   -> one adapter + IPv4 replace-all transaction
+collect all core modules
+  -> validate complete Core Inventory Snapshot
+  -> begin transaction
+  -> replace all core current state
+  -> commit once
 ```
 
-Processor and Network therefore use two independent transactions. No general
-all-inventory transaction or new retry is introduced.
+Any collection, parsing or validation failure prevents persistence. Any
+persistence failure rolls back all core changes. Connectivity success remains
+separate from inventory success. The transaction never spans WinRM collection.
 
-Use small ownership-focused stores such as `IComputerInventoryStore`,
-`IOperatingSystemInventoryStore`, `IMemoryInventoryStore`,
-`IProcessorSnapshotStore` and `INetworkSnapshotStore`. Exact names follow
-repository conventions. Do not create a generic repository, Unit of Work or
-runtime snapshot framework.
-
-`INetworkSnapshotStore` accepts one fully materialized, normalized and validated
-Network Snapshot. Adapter and IPv4 persistence are not independent caller
-operations.
+Use one narrow core-inventory store accepting one fully materialized,
+normalized and validated Core Inventory Snapshot. This is not a generic
+repository, Unit of Work or runtime snapshot framework.
 
 ### Validation boundary
 
@@ -256,11 +251,11 @@ replace it in a separate documentation task.
 
 ## Compliance
 
-An implementation complies only when ownership is logical-snapshot based,
-Adapter and IPv4 persist atomically with their explicit foreign key, partial
-Network Snapshot cannot commit, unrelated boundaries remain isolated, only
-IPv4 is collected/persisted, `CapturedAt` retains Türkiye local-time semantics,
-and WP-005.2 behavior remains unchanged.
+An implementation complies only when all core collection completes before one
+Core Inventory transaction begins, Adapter and IPv4 retain their explicit
+same-target foreign key and ordered replacement, partial core state cannot
+commit, only IPv4 is collected/persisted, and `CapturedAt` retains Türkiye
+local-time semantics.
 
 ## Related documents
 
@@ -273,4 +268,5 @@ and WP-005.2 behavior remains unchanged.
 
 | Version | Date | Description |
 |---|---|---|
+| 2.0.0 | 2026-07-28 | Superseded independent core persistence with one collect-first atomic Core Inventory Snapshot |
 | 1.0.0 | 2026-07-27 | Accepted inventory ownership, IPv4-only and timestamp boundaries |

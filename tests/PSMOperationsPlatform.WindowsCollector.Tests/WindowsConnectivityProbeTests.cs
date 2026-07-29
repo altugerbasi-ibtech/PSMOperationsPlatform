@@ -44,11 +44,16 @@ public sealed class WindowsConnectivityProbeTests
         Assert.True(result.IsReachable);
         Assert.Equal(WinRmTransport.Http, result.SuccessfulTransport);
         Assert.Equal(WinRmFailureCategory.None, result.FinalFailureCategory);
+        Assert.Equal(1, client.Attempts[0].AttemptNumber);
+        Assert.False(client.Attempts[0].IsFallbackAttempt);
+        Assert.Equal(2, client.Attempts[1].AttemptNumber);
+        Assert.True(client.Attempts[1].IsFallbackAttempt);
     }
 
     [Theory]
     [InlineData((int)WinRmFailureCategory.DnsFailure)]
     [InlineData((int)WinRmFailureCategory.AuthenticationFailure)]
+    [InlineData((int)WinRmFailureCategory.KerberosSpnMismatch)]
     [InlineData((int)WinRmFailureCategory.AuthorizationFailure)]
     [InlineData((int)WinRmFailureCategory.Cancelled)]
     [InlineData((int)WinRmFailureCategory.Unexpected)]
@@ -220,9 +225,16 @@ public sealed class WindowsConnectivityProbeTests
             WindowsTarget target,
             WinRmTransport transport,
             TimeSpan timeout,
+            int attemptNumber,
+            bool isFallbackAttempt,
             CancellationToken cancellationToken)
         {
-            Attempts.Add(new RecordedAttempt(target, transport, timeout));
+            Attempts.Add(new RecordedAttempt(
+                target,
+                transport,
+                timeout,
+                attemptNumber,
+                isFallbackAttempt));
             return Task.FromResult(results.Dequeue());
         }
     }
@@ -235,6 +247,8 @@ public sealed class WindowsConnectivityProbeTests
             WindowsTarget target,
             WinRmTransport transport,
             TimeSpan timeout,
+            int attemptNumber,
+            bool isFallbackAttempt,
             CancellationToken cancellationToken)
         {
             Transports.Add(transport);
@@ -260,6 +274,8 @@ public sealed class WindowsConnectivityProbeTests
             WindowsTarget target,
             WinRmTransport transport,
             TimeSpan timeout,
+            int attemptNumber,
+            bool isFallbackAttempt,
             CancellationToken cancellationToken)
         {
             Timeouts.Add(timeout);
@@ -292,5 +308,7 @@ public sealed class WindowsConnectivityProbeTests
     private sealed record RecordedAttempt(
         WindowsTarget Target,
         WinRmTransport Transport,
-        TimeSpan Timeout);
+        TimeSpan Timeout,
+        int AttemptNumber,
+        bool IsFallbackAttempt);
 }

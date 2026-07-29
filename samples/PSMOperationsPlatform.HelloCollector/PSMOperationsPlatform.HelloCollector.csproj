@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\PSMOperationsPlatform.CollectorSdk\PSMOperationsPlatform.CollectorSdk.csproj" />
+  </ItemGroup>
+</Project>

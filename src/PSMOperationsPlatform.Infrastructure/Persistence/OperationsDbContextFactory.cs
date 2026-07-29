@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
+using Microsoft.Data.SqlClient;
 
 namespace PSMOperationsPlatform.Infrastructure.Persistence;
 
@@ -12,10 +13,30 @@ public sealed class OperationsDbContextFactory : IDesignTimeDbContextFactory<Ope
     {
         string connectionString =
             Environment.GetEnvironmentVariable(ConnectionStringEnvironmentVariable)
-            ?? "Server=(localdb)\\MSSQLLocalDB;Database=PSMOperationsPlatform;Integrated Security=true;TrustServerCertificate=true";
+            ?? throw new InvalidOperationException(
+                $"{ConnectionStringEnvironmentVariable} is required for EF Core design-time tooling.");
+
+        SqlConnectionStringBuilder connection;
+        try
+        {
+            connection = new SqlConnectionStringBuilder(connectionString);
+        }
+        catch (ArgumentException)
+        {
+            throw new InvalidOperationException(
+                "EF Core design-time database configuration is invalid.");
+        }
+
+        if (!connection.IntegratedSecurity ||
+            !string.IsNullOrWhiteSpace(connection.UserID) ||
+            !string.IsNullOrWhiteSpace(connection.Password))
+        {
+            throw new InvalidOperationException(
+                "EF Core design-time tooling requires Windows Integrated Authentication.");
+        }
 
         var options = new DbContextOptionsBuilder<OperationsDbContext>()
-            .UseSqlServer(connectionString)
+            .UseSqlServer(connection.ConnectionString)
             .Options;
 
         return new OperationsDbContext(options);

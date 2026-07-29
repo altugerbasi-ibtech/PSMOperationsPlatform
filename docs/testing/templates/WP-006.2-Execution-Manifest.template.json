@@ -1,0 +1,58 @@
+{
+  "SchemaVersion": "1.0",
+  "WorkPackage": "WP-006.2",
+  "ExecutionId": "<REQUIRED-GUID>",
+  "Status": "<PLANNED|IN_PROGRESS|STOPPED|COMPLETED>",
+  "RepositoryCommit": "<REQUIRED-40-CHAR-COMMIT>",
+  "CollectorArtifactHash": "<REQUIRED-SHA256>",
+  "CollectorHost": "<REQUIRED-FQDN>",
+  "CollectorHostOperatingSystem": "<REQUIRED-OS-DESCRIPTION>",
+  "LabOnlyException": {
+    "Applies": "<REQUIRED-TRUE-OR-FALSE>",
+    "Reason": "<REQUIRED-OR-NOT-APPLICABLE>",
+    "ApprovedBy": "<REQUIRED-OR-NOT-APPLICABLE>"
+  },
+  "CollectorInstallPath": "<REQUIRED-ABSOLUTE-PATH>",
+  "CollectorServiceName": "<REQUIRED-SCM-NAME>",
+  "ExpectedServiceAccount": "<REQUIRED-DOMAIN-ACCOUNT>",
+  "SqlServer": "<REQUIRED-SQL-SERVER>",
+  "DatabaseName": "<REQUIRED-DATABASE>",
+  "ManagedServerId": "<REQUIRED-GUID>",
+  "TargetFqdn": "<REQUIRED-TARGET-FQDN>",
+  "TransportPolicy": "<Auto|HttpsOnly|HttpOnly>",
+  "HttpFallbackApproved": "<REQUIRED-TRUE-OR-FALSE>",
+  "ReadinessStatus": "<READY|WARNING>",
+  "ReadinessExitCode": "<0|1>",
+  "ObservationMinutes": "<REQUIRED-POSITIVE-INTEGER>",
+  "LoggingProfile": {
+    "ConfigurationPath": "<REQUIRED-ABSOLUTE-PATH>",
+    "OriginalHash": "<REQUIRED-SHA256>",
+    "TemporaryValues": {
+      "Logging:LogLevel:Default": "Debug"
+    },
+    "RestoredHash": "<REQUIRED-AFTER-RESTORATION>"
+  },
+  "EvidenceRoot": "<REQUIRED-ABSOLUTE-PATH>",
+  "Operator": "<REQUIRED-NAME>",
+  "Approver": "<REQUIRED-NAME>",
+  "RollbackOwner": "<REQUIRED-NAME>",
+  "ChangeReference": "<REQUIRED-REFERENCE>",
+  "ConfigurationSource": "<REQUIRED-PROVIDER-DESCRIPTION>",
+  "StartTime": "<REQUIRED-ISO-8601-OR-NOT-STARTED>",
+  "StopTime": "<REQUIRED-ISO-8601-OR-NOT-STOPPED>",
+  "RestorationCompleted": "<REQUIRED-TRUE-OR-FALSE>",
+  "Deviations": [],
+  "EvidenceFiles": {
+    "ReadinessJson": "<REQUIRED-RELATIVE-PATH>",
+    "PreflightJson": "<REQUIRED-RELATIVE-PATH>",
+    "SqlBaselineJson": "<REQUIRED-RELATIVE-PATH>",
+    "SqlPostRunJson": "<REQUIRED-RELATIVE-PATH>",
+    "SqlVerificationJson": "<REQUIRED-RELATIVE-PATH>",
+    "HostPreStartJson": "<REQUIRED-RELATIVE-PATH>",
+    "HostRunningJson": "<REQUIRED-RELATIVE-PATH>",
+    "HostPostStopJson": "<REQUIRED-RELATIVE-PATH>",
+    "ModuleEvidenceJson": "<REQUIRED-RELATIVE-PATH>",
+    "RestorationEvidenceJson": "<REQUIRED-RELATIVE-PATH>",
+    "EvidenceIndex": "<REQUIRED-RELATIVE-PATH>"
+  }
+}

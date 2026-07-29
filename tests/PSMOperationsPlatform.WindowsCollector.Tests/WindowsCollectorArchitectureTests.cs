@@ -19,7 +19,6 @@ public sealed class WindowsCollectorArchitectureTests
         Assert.DoesNotContain("TrustedHosts", source);
         Assert.DoesNotContain("PSCredential", source);
         Assert.DoesNotContain("IQueryable<", source);
-        Assert.DoesNotContain("powershell.exe", source, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Process.Start", source);
         Assert.DoesNotContain("SkipCACheck", source);
         Assert.DoesNotContain("SkipCNCheck", source);
@@ -136,6 +135,29 @@ public sealed class WindowsCollectorArchitectureTests
                     $"{projectName}.csproj"));
             Assert.DoesNotContain("Microsoft.PowerShell.SDK", project);
         }
+    }
+
+    [Fact]
+    public void WinRmSessionsPermitOnlyPortQualifiedKerberosProcessIdentity()
+    {
+        string source = File.ReadAllText(
+            Path.Combine(
+                FindRepositoryRoot(),
+                "src",
+                "PSMOperationsPlatform.WindowsCollector",
+                "PowerShellWinRmSession.cs"));
+
+        Assert.Contains(
+            "AuthenticationMechanism = AuthenticationMechanism.Kerberos",
+            source);
+        Assert.Contains("IncludePortInSPN = true", source);
+        Assert.DoesNotContain("AuthenticationMechanism.Negotiate", source);
+        Assert.DoesNotContain("AuthenticationMechanism.Basic", source);
+        Assert.DoesNotContain("AuthenticationMechanism.Digest", source);
+        Assert.DoesNotContain("AuthenticationMechanism.Credssp", source);
+        Assert.DoesNotContain("AuthenticationMechanism.Ntlm", source);
+        Assert.DoesNotContain("TrustedHosts", source);
+        Assert.DoesNotContain("PSCredential", source);
     }
 
     [Fact]

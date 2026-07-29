@@ -1,6 +1,6 @@
 ---
 title: Product Roadmap
-version: 1.15.0
+version: 1.19.0
 status: Draft
 owner: Product
 last_updated: 2026-07-27
@@ -19,6 +19,10 @@ product: PSM Operations Platform
 6. SQL Server discovery and health
 7. Controlled operations through Windows Action Executor
 8. Reporting, performance validation and operational hardening
+
+WP-006 Windows Collector Production Validation has its controlled execution
+package prepared. WP-006.2A deployment tooling is implemented; live deployment
+and validation have not yet been executed.
 
 ## Delivery sequence
 
@@ -45,6 +49,10 @@ future Work Packages are not silently renumbered here.
 
 | Version | Date | Description |
 |---|---|---|
+| 1.19.0 | 2026-07-27 | Implemented WP-006.2A deployment package; live deployment pending |
+| 1.18.0 | 2026-07-27 | Prepared WP-006.2 controlled execution package |
+| 1.17.0 | 2026-07-27 | Approved WP-006.1 for controlled execution |
+| 1.16.0 | 2026-07-27 | Added WP-006 production validation analysis status |
 | 1.15.0 | 2026-07-27 | Completed WP-005.S2 collector readiness tooling |
 | 1.14.0 | 2026-07-27 | Added post-implementation WP-005.S1 lab validation gate |
 | 1.13.0 | 2026-07-27 | Passed WP-005 final architecture review |

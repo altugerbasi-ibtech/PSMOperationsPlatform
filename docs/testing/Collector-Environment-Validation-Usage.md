@@ -1,6 +1,6 @@
 ---
 title: Collector Environment Validation Usage
-version: 1.0.0
+version: 1.2.0
 status: Approved
 owner: Engineering
 last_updated: 2026-07-27
@@ -45,3 +45,36 @@ Exit codes:
 
 The tool is non-interactive and accepts no credentials. It does not start or
 stop the collector service.
+
+## Configuration interpretation
+
+The readiness report inspects optional `appsettings.json` and
+`appsettings.{Environment}.json` files independently. It distinguishes a
+missing optional file, an unreadable file, invalid JSON, and valid JSON. A
+valid file does not need to contain `ConnectionStrings:OperationsDatabase`
+when a higher-precedence provider supplies the value.
+
+For providers visible to the readiness tool, precedence is base JSON,
+environment-specific JSON, then the machine
+`PSM__ConnectionStrings__OperationsDatabase` environment variable. This
+matches the applicable portion of the runtime provider order. Reports identify
+the selected source, provider and key, but never the connection-string value.
+The complete runtime order remains JSON, environment-specific JSON,
+Development User Secrets in Development, `PSM__` environment variables, then
+command-line arguments.
+
+## Platform interpretation
+
+Production support and the active validation mode are reported separately.
+Windows Server 2022 or later remains the minimum supported production
+collector host. `CollectorHost` validates deployment usability; it is not
+production certification. Controlled `CollectorHost` and `SmokeTest`
+validation may run on 64-bit Windows Server 2019 or later so behavioral
+evidence can be collected without claiming production support.
+
+On Windows Server 2019, the production-support check is `WARNING`.
+Both `CollectorHost` deployment validation and `SmokeTest` platform validation
+are `PASS`. Because the support warning remains visible, an otherwise
+successful Windows Server 2019 validation has overall `WARNING` and exit code
+`1`, not `NOT_READY`. This host remains controlled-lab-only and unsupported for
+production.

@@ -1,0 +1,16 @@
+{
+  "Computer": [],
+  "OperatingSystem": [],
+  "Memory": [],
+  "Processor": [],
+  "Disk": [],
+  "Volume": [],
+  "NetworkAdapter": [],
+  "Ipv4": [
+    {
+      "StableSourceKey": "adapter-1|192.0.2.10/24",
+      "Address": "192.0.2.10",
+      "AdapterStableSourceKey": null
+    }
+  ]
+}

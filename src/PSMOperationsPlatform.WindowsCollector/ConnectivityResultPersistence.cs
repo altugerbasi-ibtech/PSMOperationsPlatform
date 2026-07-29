@@ -213,6 +213,10 @@ internal sealed class ConnectivityResultPersistence(
                 ConnectivityFailureCategory.TlsFailure,
             WinRmFailureCategory.AuthenticationFailure =>
                 ConnectivityFailureCategory.AuthenticationFailure,
+            // Temporary until a separately approved migration extends the
+            // persisted category CHECK constraint.
+            WinRmFailureCategory.KerberosSpnMismatch =>
+                ConnectivityFailureCategory.AuthenticationFailure,
             WinRmFailureCategory.AuthorizationFailure =>
                 ConnectivityFailureCategory.AuthorizationFailure,
             WinRmFailureCategory.WinRmUnavailable =>

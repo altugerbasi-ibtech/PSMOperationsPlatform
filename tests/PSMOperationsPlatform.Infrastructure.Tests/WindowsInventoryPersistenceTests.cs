@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Migrations.Operations;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.Extensions.Logging.Abstractions;
 using PSMOperationsPlatform.Domain.Entities;
 using PSMOperationsPlatform.Infrastructure.Persistence;
 
@@ -72,7 +73,7 @@ public sealed class WindowsInventoryPersistenceTests
         await store.ReplaceAsync(second, [new("cpu-0", CoreCount: 8)], default);
         await store.ReplaceAsync(first, [new("cpu-1", CoreCount: 16)], default);
 
-        Assert.Equal("cpu-1", (await database.Context.WindowsProcessorInventories.SingleAsync(x => x.ManagedServerId == first)).StableSourceKey);
+        Assert.Equal("cpu-1", (await database.Context.WindowsProcessorInventories.SingleAsync(x => x.ManagedServerId == first)).ProcessorKey);
         Assert.Equal(8, (await database.Context.WindowsProcessorInventories.SingleAsync(x => x.ManagedServerId == second)).CoreCount);
 
         await store.ReplaceAsync(first, [], default);
@@ -91,7 +92,7 @@ public sealed class WindowsInventoryPersistenceTests
         await Assert.ThrowsAsync<ArgumentException>(() =>
             store.ReplaceAsync(serverId, [new("cpu-1"), new(" CPU-1 ")], default));
 
-        Assert.Equal("cpu-0", (await database.Context.WindowsProcessorInventories.SingleAsync()).StableSourceKey);
+        Assert.Equal("cpu-0", (await database.Context.WindowsProcessorInventories.SingleAsync()).ProcessorKey);
     }
 
     [Fact]
@@ -119,7 +120,7 @@ public sealed class WindowsInventoryPersistenceTests
                 new NetworkInventorySnapshot([new("adapter-2")], [new("adapter-2", "::ffff:192.0.2.1", 24)]),
                 default));
 
-        Assert.Equal("adapter-1", (await database.Context.WindowsNetworkAdapterInventories.SingleAsync()).StableSourceKey);
+        Assert.Equal("adapter-1", (await database.Context.WindowsNetworkAdapterInventories.SingleAsync()).AdapterKey);
         Assert.Equal("192.0.2.10", (await database.Context.WindowsIpv4AddressInventories.SingleAsync()).Address);
     }
 
@@ -179,7 +180,7 @@ public sealed class WindowsInventoryPersistenceTests
             "adapter-old",
             (await database.Context.WindowsNetworkAdapterInventories
                 .AsNoTracking()
-                .SingleAsync()).StableSourceKey);
+                .SingleAsync()).AdapterKey);
         Assert.Equal(
             "192.0.2.20",
             (await database.Context.WindowsIpv4AddressInventories
@@ -218,7 +219,7 @@ public sealed class WindowsInventoryPersistenceTests
             store.ReplaceAsync(serverId, [new("cpu-new")], default));
         interceptor.Fail = false;
 
-        Assert.Equal("cpu-old", (await database.Context.WindowsProcessorInventories.AsNoTracking().SingleAsync()).StableSourceKey);
+        Assert.Equal("cpu-old", (await database.Context.WindowsProcessorInventories.AsNoTracking().SingleAsync()).ProcessorKey);
     }
 
     [Fact]
@@ -236,7 +237,7 @@ public sealed class WindowsInventoryPersistenceTests
         await Assert.ThrowsAsync<InventoryTargetNotFoundException>(() =>
             store.ReplaceAsync(Guid.NewGuid(), [new("cpu-new")], default));
 
-        Assert.Equal("cpu-old", (await database.Context.WindowsProcessorInventories.AsNoTracking().SingleAsync()).StableSourceKey);
+        Assert.Equal("cpu-old", (await database.Context.WindowsProcessorInventories.AsNoTracking().SingleAsync()).ProcessorKey);
     }
 
     [Fact]
@@ -253,15 +254,15 @@ public sealed class WindowsInventoryPersistenceTests
 
         await diskStore.ReplaceAsync(
             serverId,
-            [new("disk-old", DiskNumber: 0, SizeBytes: 1_000)],
+            [new("disk-old", Index: 0, SizeBytes: 1_000)],
             default);
         await volumeStore.ReplaceAsync(
             serverId,
-            [new("volume-1", DriveLetter: "C", SizeBytes: 500, FreeSpaceBytes: 100)],
+            [new("volume-1", DriveLetter: "C", CapacityBytes: 500, FreeSpaceBytes: 100)],
             default);
         await diskStore.ReplaceAsync(
             serverId,
-            [new("disk-new", DiskNumber: 1, SizeBytes: 2_000)],
+            [new("disk-new", Index: 1, SizeBytes: 2_000)],
             default);
 
         Assert.Equal(
@@ -315,6 +316,174 @@ public sealed class WindowsInventoryPersistenceTests
             (await database.Context.WindowsVolumeInventories
                 .AsNoTracking()
                 .SingleAsync()).StableSourceKey);
+    }
+
+    [Fact]
+    public async Task Core_store_commits_one_capture_and_inventory_schedule_atomically()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        Guid serverId = await database.AddServerAsync("core-atomic.ae.local");
+        DateTime nextAttempt = CapturedAt.AddHours(6);
+        var store = new CoreWindowsInventoryStore(
+            database.Context,
+            NullLogger<CoreWindowsInventoryStore>.Instance);
+        var snapshot = new CoreWindowsInventorySnapshot(
+            new("CORE", "core-atomic.ae.local", "ae.local", "Contoso", "Model", null),
+            new("Windows Server 2022", "10.0", "20348", "64-bit"),
+            new("Contoso", "1.2.3", "BIOS", null, "SERIAL", 3, 5),
+            [new("CPU0", CoreCount: 4)],
+            [new("DEVICE:DIMM0", "DIMM0", null, 1024, null, null, null, null, null, 8, 26)],
+            [],
+            [new("volume-1", DriveLetter: "C", CapacityBytes: 100, FreeSpaceBytes: 50)],
+            new([], []));
+
+        Guid inventoryRunId = Guid.NewGuid();
+        await store.ReplaceAsync(
+            serverId, snapshot, inventoryRunId, CapturedAt, nextAttempt, default);
+
+        Assert.Equal(
+            CapturedAt,
+            (await database.Context.WindowsComputerInventories.SingleAsync()).CapturedAt);
+        Assert.Equal(
+            CapturedAt,
+            (await database.Context.WindowsOperatingSystemInventories.SingleAsync()).CapturedAt);
+        Assert.Equal(
+            "SERIAL",
+            (await database.Context.WindowsBiosInventories.SingleAsync()).SerialNumber);
+        Assert.Equal(
+            CapturedAt,
+            (await database.Context.WindowsProcessorInventories.SingleAsync()).CapturedAt);
+        Assert.Equal(
+            CapturedAt,
+            (await database.Context.WindowsVolumeInventories.SingleAsync()).CapturedAt);
+        Assert.All(
+            new[]
+            {
+                (await database.Context.WindowsComputerInventories.SingleAsync()).InventoryRunId,
+                (await database.Context.WindowsOperatingSystemInventories.SingleAsync()).InventoryRunId,
+                (await database.Context.WindowsBiosInventories.SingleAsync()).InventoryRunId,
+                (await database.Context.WindowsProcessorInventories.SingleAsync()).InventoryRunId,
+                (await database.Context.WindowsMemoryInventories.SingleAsync()).InventoryRunId,
+                (await database.Context.WindowsVolumeInventories.SingleAsync()).InventoryRunId,
+            },
+            value => Assert.Equal(inventoryRunId, value));
+        ManagedServer target = await database.Context.ManagedServers.SingleAsync();
+        Assert.Equal(CapturedAt, target.LastInventoryAttemptAt);
+        Assert.Equal(CapturedAt, target.LastInventorySuccessAt);
+        Assert.Equal(nextAttempt, target.NextInventoryAttemptAt);
+        Assert.Equal(0, target.ConsecutiveInventoryFailures);
+        Assert.Equal(1, target.InventoryVersion);
+
+        await store.ReplaceAsync(
+            serverId,
+            snapshot with { MemoryModules = [] },
+            Guid.NewGuid(),
+            CapturedAt.AddHours(6),
+            CapturedAt.AddHours(12),
+            default);
+        Assert.Equal(
+            2,
+            (await database.Context.ManagedServers.SingleAsync()).InventoryVersion);
+        Assert.Equal(1, await database.Context.WindowsComputerInventories.CountAsync());
+        Assert.Equal(1, await database.Context.WindowsOperatingSystemInventories.CountAsync());
+        Assert.Equal(1, await database.Context.WindowsBiosInventories.CountAsync());
+        Assert.Empty(await database.Context.WindowsMemoryInventories.ToListAsync());
+    }
+
+    [Fact]
+    public async Task Inventory_failure_schedule_uses_approved_bounded_backoff()
+    {
+        await using var database = await TestDatabase.CreateAsync();
+        Guid serverId = await database.AddServerAsync("inventory-backoff.ae.local");
+        var store = new InventoryScheduleStore(
+            database.Context,
+            NullLogger<InventoryScheduleStore>.Instance);
+        TimeSpan[] expected =
+        [
+            TimeSpan.FromMinutes(5),
+            TimeSpan.FromMinutes(15),
+            TimeSpan.FromMinutes(30),
+            TimeSpan.FromMinutes(60),
+            TimeSpan.FromMinutes(60),
+        ];
+
+        for (int index = 0; index < expected.Length; index++)
+        {
+            DateTime attempt = CapturedAt.AddHours(index);
+            await store.RecordFailureAsync(
+                serverId, attempt, "CollectionFailure", default);
+            ManagedServer target = await database.Context.ManagedServers.SingleAsync();
+            Assert.Equal(index + 1, target.ConsecutiveInventoryFailures);
+            Assert.Equal(attempt, target.LastInventoryAttemptAt);
+            Assert.Equal(attempt.Add(expected[index]), target.NextInventoryAttemptAt);
+            Assert.Equal("CollectionFailure", target.LastInventoryFailureCategory);
+            Assert.Equal(0, target.InventoryVersion);
+        }
+    }
+
+    [Fact]
+    public async Task Core_persistence_failure_rolls_back_every_core_table()
+    {
+        var interceptor = new FailingSaveChangesInterceptor();
+        await using var database = await TestDatabase.CreateAsync(interceptor);
+        Guid serverId = await database.AddServerAsync("core-rollback.ae.local");
+        await new ProcessorSnapshotStore(
+            database.Context,
+            new FixedTimeProvider(CapturedAt))
+            .ReplaceAsync(serverId, [new("cpu-old")], default);
+        await new VolumeSnapshotStore(
+            database.Context,
+            new FixedTimeProvider(CapturedAt))
+            .ReplaceAsync(serverId, [new("volume-old")], default);
+        Guid processorRunBefore = (await database.Context.WindowsProcessorInventories
+            .AsNoTracking().SingleAsync()).InventoryRunId;
+        Guid volumeRunBefore = (await database.Context.WindowsVolumeInventories
+            .AsNoTracking().SingleAsync()).InventoryRunId;
+        var store = new CoreWindowsInventoryStore(
+            database.Context,
+            NullLogger<CoreWindowsInventoryStore>.Instance);
+        var snapshot = new CoreWindowsInventorySnapshot(
+            new("NEW", "core-rollback.ae.local", null, null, null, null),
+            new("Windows Server 2022", "10.0", "20348", "64-bit"),
+            new(null, null, null, null, null, null, null),
+            [new("cpu-new")],
+            [],
+            [],
+            [new("volume-new")],
+            new([], []));
+        interceptor.Fail = true;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            store.ReplaceAsync(
+                serverId,
+                snapshot,
+                Guid.NewGuid(),
+                CapturedAt.AddHours(1),
+                CapturedAt.AddHours(7),
+                default));
+        interceptor.Fail = false;
+
+        Assert.False(await database.Context.WindowsComputerInventories.AnyAsync());
+        Assert.Equal(
+            "cpu-old",
+            (await database.Context.WindowsProcessorInventories.AsNoTracking().SingleAsync())
+                .ProcessorKey);
+        Assert.Equal(
+            "volume-old",
+            (await database.Context.WindowsVolumeInventories.AsNoTracking().SingleAsync())
+                .StableSourceKey);
+        Assert.Equal(
+            processorRunBefore,
+            (await database.Context.WindowsProcessorInventories.AsNoTracking().SingleAsync())
+                .InventoryRunId);
+        Assert.Equal(
+            volumeRunBefore,
+            (await database.Context.WindowsVolumeInventories.AsNoTracking().SingleAsync())
+                .InventoryRunId);
+        Assert.Equal(
+            0,
+            (await database.Context.ManagedServers.AsNoTracking().SingleAsync())
+                .InventoryVersion);
     }
 
     [Fact]
@@ -379,6 +548,33 @@ public sealed class WindowsInventoryPersistenceTests
             < down.IndexOf(
                 "DROP TABLE [inventory].[WindowsNetworkAdapterInventory]",
                 StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Wp0071_forward_migration_is_narrow_and_enforces_composite_network_integrity()
+    {
+        using var context = new OperationsDbContext(
+            new DbContextOptionsBuilder<OperationsDbContext>()
+                .UseSqlServer(
+                    "Server=(localdb)\\MSSQLLocalDB;Database=Wp0071Script;Trusted_Connection=True")
+                .Options);
+        string sql = context.GetService<IMigrator>().GenerateScript(
+            "20260727230000_AddWindowsInventoryCurrentState",
+            "20260728093000_WP0071CoreInventoryReliability");
+
+        Assert.Contains("ALTER TABLE [configuration].[ManagedServer]", sql, StringComparison.Ordinal);
+        Assert.Contains("[NextInventoryAttemptAt] datetime2(7)", sql, StringComparison.Ordinal);
+        Assert.Contains("[InventoryVersion] bigint", sql, StringComparison.Ordinal);
+        Assert.Contains("UX_WindowsMemoryInventory_ManagedServer_ModuleKey", sql, StringComparison.Ordinal);
+        Assert.Contains(
+            "FK_WindowsIpv4AddressInventory_WindowsNetworkAdapterInventory_NetworkAdapterInventoryId_ManagedServerId",
+            sql,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain(
+            "CREATE TABLE [configuration].[ManagedServer]",
+            sql,
+            StringComparison.Ordinal);
+        Assert.DoesNotContain("ON DELETE CASCADE", sql, StringComparison.OrdinalIgnoreCase);
     }
 
     private sealed class FixedTimeProvider(DateTime localTime) : TimeProvider
@@ -464,6 +660,18 @@ public sealed class WindowsInventoryPersistenceTests
             }
 
             modelBuilder.Entity<ManagedServer>()
+                .Property(entity => entity.RowVersion)
+                .HasDefaultValueSql("randomblob(8)");
+            modelBuilder.Entity<WindowsProcessorInventory>()
+                .Property(entity => entity.RowVersion)
+                .HasDefaultValueSql("randomblob(8)");
+            modelBuilder.Entity<WindowsMemoryInventory>()
+                .Property(entity => entity.RowVersion)
+                .HasDefaultValueSql("randomblob(8)");
+            modelBuilder.Entity<WindowsNetworkAdapterInventory>()
+                .Property(entity => entity.RowVersion)
+                .HasDefaultValueSql("randomblob(8)");
+            modelBuilder.Entity<WindowsIpv4AddressInventory>()
                 .Property(entity => entity.RowVersion)
                 .HasDefaultValueSql("randomblob(8)");
         }

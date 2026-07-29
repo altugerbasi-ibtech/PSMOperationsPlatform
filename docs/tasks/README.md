@@ -1,6 +1,6 @@
 ---
 title: Work Packages
-version: 1.11.0
+version: 1.15.0
 status: Approved
 owner: Engineering
 last_updated: 2026-07-27
@@ -11,6 +11,12 @@ product: PSM Operations Platform
 # Work Packages
 
 A Work Package is the implementation contract for one bounded change. It includes objective, scope, design, security, acceptance criteria, tests and documentation updates. Give an AI coding agent only one active Work Package at a time.
+
+This directory retains historical work-package and review evidence. Future
+Specification-Driven Development uses authoritative implementable
+specifications under [`../../workpackages/`](../../workpackages/), governed by
+Development Process Freeze v1.0. Do not create a competing future
+specification in both locations.
 
 ## Index
 
@@ -25,10 +31,18 @@ A Work Package is the implementation contract for one bounded change. It include
    - [`WP-005.S1-Controlled-Lab-Smoke-Test.md`](WP-005.S1-Controlled-Lab-Smoke-Test.md)
    - [`WP-005.S2-Collector-Environment-Validation.md`](WP-005.S2-Collector-Environment-Validation.md)
 
+6. [`WP-006-Windows-Collector-Production-Validation.md`](WP-006-Windows-Collector-Production-Validation.md)
+   - WP-006.2A deployment tooling implemented; live deployment and validation
+     not yet executed
+
 ## Revision history
 
 | Version | Date | Description |
 |---|---|---|
+| 1.15.0 | 2026-07-27 | Implemented WP-006.2A deployment package; live deployment pending |
+| 1.14.0 | 2026-07-27 | Prepared WP-006.2 controlled execution package |
+| 1.13.0 | 2026-07-27 | Approved WP-006.1 and opened controlled execution planning |
+| 1.12.0 | 2026-07-27 | Added WP-006 production validation analysis draft |
 | 1.11.0 | 2026-07-27 | Added completed WP-005.S2 readiness tooling |
 | 1.10.0 | 2026-07-27 | Added WP-005.S1 controlled lab preparation package |
 | 1.9.0 | 2026-07-27 | Recorded WP-005 final architecture review completion |

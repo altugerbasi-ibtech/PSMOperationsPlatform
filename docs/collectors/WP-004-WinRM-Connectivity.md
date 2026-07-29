@@ -1,6 +1,6 @@
 ---
 title: WP-004 — WinRM Connectivity
-version: 1.3.0
+version: 1.4.0
 status: Implemented
 owner: Collector
 last_updated: 2026-07-27
@@ -58,6 +58,25 @@ Defaults are HTTPS 5986 and HTTP 5985. Approved target configuration may set
 custom ports. Every normal `Auto` cycle starts with HTTPS even after an earlier
 HTTP success.
 
+### IIS Kerberos and WinRM coexistence
+
+WP-006.3 requires Kerberos exclusively for every Collector-owned WinRM
+session. The session uses the Collector process identity/gMSA, supplies no
+credential, and enables `IncludePortInSPN`.
+
+The selected transport's actual configured port is included in the SPN:
+
+- HTTP uses `HTTP/server.fqdn:<http-port>`.
+- HTTPS also uses the HTTP service class:
+  `HTTP/server.fqdn:<https-port>`.
+
+This permits WinRM to coexist with IIS application pools whose domain account
+or gMSA legitimately owns the unqualified `HTTP/server` and
+`HTTP/server.fqdn` SPNs. Those IIS SPNs normally require no modification. The
+Collector does not query or modify AD, and it does not use Negotiate, NTLM,
+TrustedHosts, Basic, Digest, CredSSP, certificate client credentials, or
+username/password fallback.
+
 HTTPS retains normal Windows certificate chain, name and revocation policy.
 Certificate bypass and TrustedHosts mutation are prohibited. HTTP provides no
 TLS server authentication or transport encryption; enabling it is an explicit
@@ -74,6 +93,7 @@ security and operational decision, not a generally safe default.
 | Timeout | Yes | HTTP path may differ; budgets remain bounded | Unreachable |
 | TLS failure | Yes | HTTPS-specific trust/handshake failure | Unreachable |
 | Authentication failure | No | Transport does not repair identity | Unreachable |
+| Kerberos SPN mismatch | No | Transport does not repair Kerberos identity or SPN ownership | Unreachable |
 | Authorization failure | No | Transport does not grant permission | Unreachable |
 | WinRM endpoint unavailable | Yes | HTTP listener may exist | Unreachable |
 | Protocol failure | Yes | Listener-specific negotiation may differ | Unreachable |
@@ -100,11 +120,22 @@ Each transport attempt defaults to the target-specific 10-second timeout.
 ## Failure mapping
 
 Stable categories are `None`, `DnsFailure`, `ConnectionRefused`, `Timeout`,
-`TlsFailure`, `AuthenticationFailure`, `AuthorizationFailure`,
-`WinRmUnavailable`, `ProtocolFailure` and `Unexpected`.
+`TlsFailure`, `AuthenticationFailure`, `KerberosSpnMismatch`,
+`AuthorizationFailure`, `WinRmUnavailable`, `ProtocolFailure` and
+`Unexpected`.
 `DatabaseUnavailable` and `Cancelled` are collector control outcomes and are
 not target failure state. Raw exceptions, native messages, certificate,
-Kerberos and remote output are neither persisted nor logged.
+Kerberos tickets, tokens, native messages and remote output are neither
+persisted nor logged. Safe attempt diagnostics record FQDN, transport, port,
+Kerberos, `IncludePortInSpn=true`, timeout, attempt number and fallback state.
+Structured error code `0x80090322` is classified as
+`KerberosSpnMismatch`; unrelated WinRM failures retain their existing
+categories.
+
+Until a separately approved database migration extends
+`CK_ManagedServer_LastConnectivityFailureCategory`, persistence maps
+`KerberosSpnMismatch` to the existing `AuthenticationFailure` value. The
+dedicated category remains available in structured diagnostics.
 
 ## Optional infrastructure testing
 
@@ -116,8 +147,7 @@ suite. HTTPS scenarios require controlled certificate infrastructure.
 ## Known limitations and operational risks
 
 - Opening a session proves endpoint use, not future inventory authorization.
-- Kerberos/NTLM negotiation is controlled by deployment policy; WP-004 provides
-  no guarantee of a specific negotiated mechanism.
+- Kerberos is required; there is no NTLM or Negotiate fallback.
 - HTTP materially weakens transport assurances.
 - Real Windows Service installation and real-target WinRM remain
   environment-gated operational smoke tests.

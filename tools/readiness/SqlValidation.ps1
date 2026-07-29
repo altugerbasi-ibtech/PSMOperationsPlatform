@@ -72,7 +72,7 @@ function Test-SqlReadiness {
     }
     $schemaQuery = @'
 SELECT
-  CASE WHEN EXISTS (SELECT 1 FROM dbo.__EFMigrationsHistory WHERE MigrationId = N'20260727230000_AddWindowsInventoryCurrentState') THEN 1 ELSE 0 END AS MigrationPresent,
+  CASE WHEN EXISTS (SELECT 1 FROM dbo.__EFMigrationsHistory WHERE MigrationId = N'20260728093000_WP0071CoreInventoryReliability') THEN 1 ELSE 0 END AS MigrationPresent,
   CASE WHEN OBJECT_ID(N'inventory.WindowsComputerInventory', N'U') IS NOT NULL
         AND OBJECT_ID(N'inventory.WindowsOperatingSystemInventory', N'U') IS NOT NULL
         AND OBJECT_ID(N'inventory.WindowsMemoryInventory', N'U') IS NOT NULL
@@ -87,9 +87,9 @@ SELECT
         $schema = Get-ReadinessSqlFirstRow $schemaResult
         $schemaOk = [int]$schema.MigrationPresent -eq 1 -and
             [int]$schema.TablesPresent -eq 1
-        $results.Add((New-ReadinessCheck -CheckId 'SQL.SCHEMA' -Category SQL -Name 'WP-005 schema and migration' `
+        $results.Add((New-ReadinessCheck -CheckId 'SQL.SCHEMA' -Category SQL -Name 'WP-007.1 schema and migration' `
             -Status $(if ($schemaOk) {'PASS'} else {'FAIL'}) -Severity $(if ($schemaOk) {'INFO'} else {'CRITICAL'}) `
-            -Summary $(if ($schemaOk) {'Expected migration and all eight WP-005 tables are present.'} else {'Expected migration or required WP-005 tables are missing.'}) `
+            -Summary $(if ($schemaOk) {'Expected WP-007.1 migration and core inventory tables are present.'} else {'Expected WP-007.1 migration or required core inventory tables are missing.'}) `
             -Evidence "MigrationPresent=$($schema.MigrationPresent); TablesPresent=$($schema.TablesPresent)" `
             -Recommendation $(if ($schemaOk) {$null} else {'Review the controlled migration plan; this framework will not apply migrations.'}) `
             -IsBlocking $true -IsMandatory $true -DurationMilliseconds 0))

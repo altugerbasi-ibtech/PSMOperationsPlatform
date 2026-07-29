@@ -18,3 +18,7 @@ product: PSM Operations Platform
 8. Merge after acceptance criteria pass.
 
 Codex implements specifications; it does not define architecture.
+
+For future packages, the authoritative workflow is Development Process Freeze
+v1.0. Specifications live under `workpackages/`; prompts are short launchers,
+and Codex cannot self-approve review outcomes.

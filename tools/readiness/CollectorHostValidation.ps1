@@ -17,15 +17,63 @@ function Test-CollectorHostReadiness {
     try {
         $computer = & $Operations.GetComputerSystem
         $os = & $Operations.GetOperatingSystem
-        $supported = [Environment]::Is64BitOperatingSystem -and
-            ([version]$os.Version).Major -ge 10 -and [int]$os.BuildNumber -ge 20348
+        $isWindowsServer = [string]$os.Caption -match '(?i)\bWindows Server\b'
+        $is64Bit = [string]$os.OSArchitecture -match '64'
+        $isWindowsServer2019OrLater = $isWindowsServer -and $is64Bit -and
+            ([version]$os.Version).Major -ge 10 -and
+            [int]$os.BuildNumber -ge 17763
+        $isSupportedProductionPlatform = $isWindowsServer2019OrLater -and
+            [int]$os.BuildNumber -ge 20348
+        $supportStatus = if ($isSupportedProductionPlatform) {
+            'PASS'
+        } elseif ($isWindowsServer2019OrLater) {
+            'WARNING'
+        } else {
+            'FAIL'
+        }
         $results.Add((New-ReadinessCheck -CheckId 'HOST.OS.SUPPORTED' -Category CollectorHost `
-            -Name 'Supported Windows Server host' -Status $(if ($supported) {'PASS'} else {'FAIL'}) `
-            -Severity $(if ($supported) {'INFO'} else {'HIGH'}) `
-            -Summary $(if ($supported) {'Supported 64-bit Windows Server host detected.'} else {'Host does not meet the documented Windows Server 2022 minimum.'}) `
+            -Name 'Supported production platform' -Status $supportStatus `
+            -Severity $(if ($isSupportedProductionPlatform) {'INFO'} elseif ($isWindowsServer2019OrLater) {'MEDIUM'} else {'HIGH'}) `
+            -Summary $(if ($isSupportedProductionPlatform) {
+                'The host meets the supported Windows Server 2022 or later production policy.'
+            } elseif ($isWindowsServer2019OrLater) {
+                'Windows Server 2019 is a controlled-lab platform, not a supported production collector host.'
+            } else {
+                'The host is older than the minimum controlled-lab and production platform policies.'
+            }) `
             -Evidence "$($os.Caption); build $($os.BuildNumber); $($os.OSArchitecture)" `
-            -Recommendation $(if ($supported) {$null} else {'Use a supported 64-bit Windows Server 2022 or later collector host.'}) `
-            -IsBlocking $true -IsMandatory $true -DurationMilliseconds 0))
+            -Recommendation $(if ($isSupportedProductionPlatform) {$null} else {
+                'Use a supported 64-bit Windows Server 2022 or later host for production deployment.'
+            }) -IsBlocking $false -IsMandatory $false -DurationMilliseconds 0))
+
+        $modePolicies = @{
+            CollectorHost = @{
+                Name = 'CollectorHost deployment validation'
+                MinimumBuild = 17763
+                MinimumDescription = '64-bit Windows Server 2019'
+            }
+            SmokeTest = @{
+                Name = 'Controlled lab smoke-test validation'
+                MinimumBuild = 17763
+                MinimumDescription = '64-bit Windows Server 2019'
+            }
+        }
+        $modePolicy = $modePolicies[$Parameters.Mode]
+        $modePlatformAccepted = $isWindowsServer -and $is64Bit -and
+            ([version]$os.Version).Major -ge 10 -and
+            [int]$os.BuildNumber -ge $modePolicy.MinimumBuild
+        $results.Add((New-ReadinessCheck -CheckId 'HOST.OS.MODE' -Category CollectorHost `
+            -Name $modePolicy.Name `
+            -Status $(if ($modePlatformAccepted) {'PASS'} else {'FAIL'}) `
+            -Severity $(if ($modePlatformAccepted) {'INFO'} else {'HIGH'}) `
+            -Summary $(if ($modePlatformAccepted) {
+                "Deployment validation succeeded for $($Parameters.Mode) mode."
+            } else {
+                "The host does not meet the $($Parameters.Mode) mode minimum of $($modePolicy.MinimumDescription) or later."
+            }) -Evidence "Mode=$($Parameters.Mode); $($os.Caption); build $($os.BuildNumber); $($os.OSArchitecture)" `
+            -Recommendation $(if ($modePlatformAccepted) {$null} else {
+                "Use $($modePolicy.MinimumDescription) or later for $($Parameters.Mode) validation."
+            }) -IsBlocking $true -IsMandatory $true -DurationMilliseconds 0))
         $fqdn = if ($computer.PartOfDomain -and $computer.Domain) {
             "$($computer.Name).$($computer.Domain)"
         } else { $null }

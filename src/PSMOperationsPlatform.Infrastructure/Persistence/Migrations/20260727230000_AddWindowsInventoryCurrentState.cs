@@ -113,7 +113,13 @@ public partial class AddWindowsInventoryCurrentState : Migration
             constraints: table =>
             {
                 table.PrimaryKey("PK_WindowsProcessorInventory", x => x.Id);
-                table.ForeignKey("FK_WindowsProcessorInventory_ManagedServer_ManagedServerId", x => x.ManagedServerId, "configuration", "ManagedServer", "Id", onDelete: ReferentialAction.Restrict);
+                table.ForeignKey(
+                    name: "FK_WindowsProcessorInventory_ManagedServer_ManagedServerId",
+                    column: x => x.ManagedServerId,
+                    principalSchema: "configuration",
+                    principalTable: "ManagedServer",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Restrict);
             });
 
         migrationBuilder.CreateTable(
@@ -135,7 +141,13 @@ public partial class AddWindowsInventoryCurrentState : Migration
             constraints: table =>
             {
                 table.PrimaryKey("PK_WindowsDiskInventory", x => x.Id);
-                table.ForeignKey("FK_WindowsDiskInventory_ManagedServer_ManagedServerId", x => x.ManagedServerId, "configuration", "ManagedServer", "Id", onDelete: ReferentialAction.Restrict);
+                table.ForeignKey(
+                    name: "FK_WindowsDiskInventory_ManagedServer_ManagedServerId",
+                    column: x => x.ManagedServerId,
+                    principalSchema: "configuration",
+                    principalTable: "ManagedServer",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Restrict);
             });
 
         migrationBuilder.CreateTable(
@@ -156,7 +168,13 @@ public partial class AddWindowsInventoryCurrentState : Migration
             constraints: table =>
             {
                 table.PrimaryKey("PK_WindowsVolumeInventory", x => x.Id);
-                table.ForeignKey("FK_WindowsVolumeInventory_ManagedServer_ManagedServerId", x => x.ManagedServerId, "configuration", "ManagedServer", "Id", onDelete: ReferentialAction.Restrict);
+                table.ForeignKey(
+                    name: "FK_WindowsVolumeInventory_ManagedServer_ManagedServerId",
+                    column: x => x.ManagedServerId,
+                    principalSchema: "configuration",
+                    principalTable: "ManagedServer",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Restrict);
             });
 
         migrationBuilder.CreateTable(
@@ -177,7 +195,13 @@ public partial class AddWindowsInventoryCurrentState : Migration
             constraints: table =>
             {
                 table.PrimaryKey("PK_WindowsNetworkAdapterInventory", x => x.Id);
-                table.ForeignKey("FK_WindowsNetworkAdapterInventory_ManagedServer_ManagedServerId", x => x.ManagedServerId, "configuration", "ManagedServer", "Id", onDelete: ReferentialAction.Restrict);
+                table.ForeignKey(
+                    name: "FK_WindowsNetworkAdapterInventory_ManagedServer_ManagedServerId",
+                    column: x => x.ManagedServerId,
+                    principalSchema: "configuration",
+                    principalTable: "ManagedServer",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Restrict);
             });
 
         migrationBuilder.CreateTable(
@@ -198,8 +222,20 @@ public partial class AddWindowsInventoryCurrentState : Migration
             {
                 table.PrimaryKey("PK_WindowsIpv4AddressInventory", x => x.Id);
                 table.CheckConstraint("CK_WindowsIpv4AddressInventory_PrefixLength_Range", "[PrefixLength] >= 0 AND [PrefixLength] <= 32");
-                table.ForeignKey("FK_WindowsIpv4AddressInventory_ManagedServer_ManagedServerId", x => x.ManagedServerId, "configuration", "ManagedServer", "Id", onDelete: ReferentialAction.Restrict);
-                table.ForeignKey("FK_WindowsIpv4AddressInventory_WindowsNetworkAdapterInventory_NetworkAdapterInventoryId", x => x.NetworkAdapterInventoryId, "inventory", "WindowsNetworkAdapterInventory", "Id", onDelete: ReferentialAction.Restrict);
+                table.ForeignKey(
+                    name: "FK_WindowsIpv4AddressInventory_ManagedServer_ManagedServerId",
+                    column: x => x.ManagedServerId,
+                    principalSchema: "configuration",
+                    principalTable: "ManagedServer",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Restrict);
+                table.ForeignKey(
+                    name: "FK_WindowsIpv4AddressInventory_WindowsNetworkAdapterInventory_NetworkAdapterInventoryId",
+                    column: x => x.NetworkAdapterInventoryId,
+                    principalSchema: "inventory",
+                    principalTable: "WindowsNetworkAdapterInventory",
+                    principalColumn: "Id",
+                    onDelete: ReferentialAction.Restrict);
             });
     }
 

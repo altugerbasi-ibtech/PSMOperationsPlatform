@@ -1,6 +1,6 @@
 ---
 title: WP-004 — Windows Collector Security
-version: 1.4.0
+version: 1.5.0
 status: Implemented
 owner: Security
 last_updated: 2026-07-27
@@ -88,11 +88,14 @@ detail.
 - Authentication/authorization failure does not trigger HTTP fallback in
   `Auto`, avoiding repeated identity failures and logon storms.
 
-WP-004 does not promise a specific Kerberos or NTLM negotiation result. That is
-controlled by Windows, domain and endpoint policy.
+WP-006.3 requires `AuthenticationMechanism.Kerberos` and
+`IncludePortInSPN=true` for every Collector-owned WinRM session. Negotiate and
+NTLM fallback are prohibited. The selected HTTP or HTTPS port is included in
+the HTTP service-class SPN. This permits coexistence with valid IIS HTTP SPNs
+owned by a separate domain account or gMSA without changing their ownership.
 
-Kerberos with correctly configured DNS/FQDN and SPNs is the deployment
-preference. This is not a guarantee of negotiation outcome. There is no
+Kerberos success still depends on correctly configured DNS/FQDN, port-qualified
+SPNs, domain trust, time and endpoint policy. There is no
 application-managed secret, shared credential, explicit username/password,
 credential options section or credential database column.
 
@@ -255,6 +258,7 @@ verify that no credential or bypass deployment step is introduced.
 
 | Version | Date | Description |
 |---|---|---|
+| 1.5.0 | 2026-07-28 | Required explicit Kerberos and port-qualified SPNs without AD or IIS changes |
 | 1.4.0 | 2026-07-27 | Closed WP-004.6 security and redaction review |
 | 1.3.0 | 2026-07-27 | Recorded WP-004.5 persistence isolation, redaction and concurrency boundary |
 | 1.2.0 | 2026-07-27 | Recorded implemented WP-004.4 identity, cleanup and SDK boundary |

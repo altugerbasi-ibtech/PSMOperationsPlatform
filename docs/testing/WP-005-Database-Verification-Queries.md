@@ -30,7 +30,9 @@ WHERE ManagedServerId=@ManagedServerId;
 SELECT ManagedServerId,Caption,Version,BuildNumber,Architecture,InstallDate,
  LastBootTime,CapturedAt FROM inventory.WindowsOperatingSystemInventory
 WHERE ManagedServerId=@ManagedServerId;
-SELECT ManagedServerId,TotalPhysicalMemoryBytes,CapturedAt
+SELECT Id,ManagedServerId,ModuleKey,DeviceLocator,BankLabel,CapacityBytes,
+ SpeedMHz,ConfiguredClockSpeedMHz,Manufacturer,PartNumber,SerialNumber,
+ FormFactor,MemoryType,CapturedAt,RowVersion
 FROM inventory.WindowsMemoryInventory WHERE ManagedServerId=@ManagedServerId;
 SELECT StableSourceKey,Name,Manufacturer,CoreCount,LogicalProcessorCount,
  MaxClockSpeedMhz,CapturedAt FROM inventory.WindowsProcessorInventory
