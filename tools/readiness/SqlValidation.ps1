@@ -72,24 +72,38 @@ function Test-SqlReadiness {
     }
     $schemaQuery = @'
 SELECT
-  CASE WHEN EXISTS (SELECT 1 FROM dbo.__EFMigrationsHistory WHERE MigrationId = N'20260728093000_WP0071CoreInventoryReliability') THEN 1 ELSE 0 END AS MigrationPresent,
-  CASE WHEN OBJECT_ID(N'inventory.WindowsComputerInventory', N'U') IS NOT NULL
+  CASE WHEN EXISTS (SELECT 1 FROM dbo.__EFMigrationsHistory WHERE MigrationId = N'20260729191745_WP0088ExecutionHistory') THEN 1 ELSE 0 END AS MigrationPresent,
+  CASE WHEN OBJECT_ID(N'configuration.ManagedServer', N'U') IS NOT NULL
+        AND OBJECT_ID(N'collection.CollectorRun', N'U') IS NOT NULL
+        AND OBJECT_ID(N'inventory.WindowsComputerInventory', N'U') IS NOT NULL
         AND OBJECT_ID(N'inventory.WindowsOperatingSystemInventory', N'U') IS NOT NULL
         AND OBJECT_ID(N'inventory.WindowsMemoryInventory', N'U') IS NOT NULL
         AND OBJECT_ID(N'inventory.WindowsProcessorInventory', N'U') IS NOT NULL
         AND OBJECT_ID(N'inventory.WindowsDiskInventory', N'U') IS NOT NULL
         AND OBJECT_ID(N'inventory.WindowsVolumeInventory', N'U') IS NOT NULL
         AND OBJECT_ID(N'inventory.WindowsNetworkAdapterInventory', N'U') IS NOT NULL
-        AND OBJECT_ID(N'inventory.WindowsIpv4AddressInventory', N'U') IS NOT NULL THEN 1 ELSE 0 END AS TablesPresent;
+        AND OBJECT_ID(N'inventory.WindowsIpv4AddressInventory', N'U') IS NOT NULL
+        AND OBJECT_ID(N'inventory.WindowsCapabilitySnapshot', N'U') IS NOT NULL
+        AND OBJECT_ID(N'inventory.CollectorDecisionPlan', N'U') IS NOT NULL
+        AND OBJECT_ID(N'inventory.ExecutionPlan', N'U') IS NOT NULL
+        AND OBJECT_ID(N'runtime.ExecutionRunState', N'U') IS NOT NULL
+        AND OBJECT_ID(N'runtime.ExecutionStepState', N'U') IS NOT NULL
+        AND OBJECT_ID(N'runtime.ExecutionAttemptState', N'U') IS NOT NULL
+        AND OBJECT_ID(N'history.ExecutionRunHistory', N'U') IS NOT NULL
+        AND OBJECT_ID(N'history.ExecutionStepHistory', N'U') IS NOT NULL
+        AND OBJECT_ID(N'history.ExecutionAttemptHistory', N'U') IS NOT NULL
+        AND OBJECT_ID(N'history.ExecutionStateTransitionHistory', N'U') IS NOT NULL
+        AND OBJECT_ID(N'history.ExecutionArtifactHistory', N'U') IS NOT NULL
+        AND OBJECT_ID(N'history.ExecutionPolicyHistory', N'U') IS NOT NULL THEN 1 ELSE 0 END AS TablesPresent;
 '@
     try {
         $schemaResult = & $Operations.Query $builder.ConnectionString $schemaQuery
         $schema = Get-ReadinessSqlFirstRow $schemaResult
         $schemaOk = [int]$schema.MigrationPresent -eq 1 -and
             [int]$schema.TablesPresent -eq 1
-        $results.Add((New-ReadinessCheck -CheckId 'SQL.SCHEMA' -Category SQL -Name 'WP-007.1 schema and migration' `
+        $results.Add((New-ReadinessCheck -CheckId 'SQL.SCHEMA' -Category SQL -Name 'Current repository schema and migration' `
             -Status $(if ($schemaOk) {'PASS'} else {'FAIL'}) -Severity $(if ($schemaOk) {'INFO'} else {'CRITICAL'}) `
-            -Summary $(if ($schemaOk) {'Expected WP-007.1 migration and core inventory tables are present.'} else {'Expected WP-007.1 migration or required core inventory tables are missing.'}) `
+            -Summary $(if ($schemaOk) {'Latest repository migration and required persistence tables are present.'} else {'Latest repository migration or required persistence tables are missing.'}) `
             -Evidence "MigrationPresent=$($schema.MigrationPresent); TablesPresent=$($schema.TablesPresent)" `
             -Recommendation $(if ($schemaOk) {$null} else {'Review the controlled migration plan; this framework will not apply migrations.'}) `
             -IsBlocking $true -IsMandatory $true -DurationMilliseconds 0))

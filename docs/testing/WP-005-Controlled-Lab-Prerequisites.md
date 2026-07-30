@@ -58,11 +58,17 @@ Resolve-DnsName '<LAB_TARGET_FQDN>' -Type A
 Test-NetConnection '<LAB_TARGET_FQDN>' -Port <HTTPS_PORT> -InformationLevel Detailed
 Test-NetConnection '<LAB_TARGET_FQDN>' -Port <HTTP_PORT> -InformationLevel Detailed
 Test-WSMan -ComputerName '<LAB_TARGET_FQDN>' -UseSSL -Port <HTTPS_PORT> `
-  -Authentication Negotiate
+  -Authentication Kerberos
 ```
 
 Run HTTP `Test-WSMan` only for approved `Auto`/`HttpOnly`. Never use certificate
-bypass, TrustedHosts, or WinRM configuration commands.
+bypass, TrustedHosts, or WinRM configuration commands. The collector and any
+read-only remoting evidence must authenticate with Kerberos explicitly;
+Negotiate is not proof of Kerberos, and an NTLM fallback invalidates readiness.
+Do not retry with Default, Negotiate, Basic, or CredSSP authentication. DNS,
+endpoint port, SPN and gMSA configuration are integration prerequisites.
+Production remoting must retain `IncludePortInSPN`; authentication failure
+causes a stop rather than an authentication downgrade.
 
 Required sources are `root/cimv2` (`Win32_ComputerSystem`, `Win32_BIOS`,
 `Win32_OperatingSystem`, `Win32_Processor`),

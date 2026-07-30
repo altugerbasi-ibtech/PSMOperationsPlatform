@@ -1,7 +1,7 @@
 ---
 title: WP-001 — Solution Skeleton
 version: 1.0.0
-status: Draft
+status: Completed
 owner: Engineering
 last_updated: 2026-07-26
 product: PSM Operations Platform

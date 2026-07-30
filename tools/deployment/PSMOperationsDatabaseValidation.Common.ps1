@@ -40,54 +40,44 @@ function New-PSMDatabaseCheck {
 
 function Get-PSMOperationsDatabaseRequirements {
     param([string]$RepositoryRoot)
+    $manifestPath=Join-Path $RepositoryRoot 'tools\deployment\PSMOperationsDatabaseSchemaExpectation.json'
+    if(-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)){
+        throw 'Database schema expectation manifest is missing.'
+    }
+    $manifest=Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
     $migrationRoot=Join-Path $RepositoryRoot 'src\PSMOperationsPlatform.Infrastructure\Persistence\Migrations'
-    $migrationIds=@(Get-ChildItem -LiteralPath $migrationRoot -Filter '*.cs' -File |
+    $discoveredMigrationIds=@(Get-ChildItem -LiteralPath $migrationRoot -Filter '*.cs' -File |
         Where-Object{$_.Name -notlike '*.Designer.cs' -and $_.Name -ne 'OperationsDbContextModelSnapshot.cs'} |
         ForEach-Object{
             $id=[IO.Path]::GetFileNameWithoutExtension($_.Name)
             $text=Get-Content -Raw -LiteralPath $_.FullName
             if($id -match '^\d{14}_.+$' -and $text -match '\bclass\s+\w+\s*:\s*Migration\b'){$id}
         } | Sort-Object)
-    if(-not $migrationIds.Count){throw 'No repository migrations were found.'}
-    $tables=@(
-        'configuration.ManagedServer',
-        'inventory.WindowsComputerInventory',
-        'inventory.WindowsOperatingSystemInventory',
-        'inventory.WindowsMemoryInventory',
-        'inventory.WindowsProcessorInventory',
-        'inventory.WindowsDiskInventory',
-        'inventory.WindowsVolumeInventory',
-        'inventory.WindowsNetworkAdapterInventory',
-        'inventory.WindowsIpv4AddressInventory'
-    )
-    $foreignKeys=@(
-        'FK_WindowsComputerInventory_ManagedServer_ManagedServerId',
-        'FK_WindowsOperatingSystemInventory_ManagedServer_ManagedServerId',
-        'FK_WindowsMemoryInventory_ManagedServer_ManagedServerId',
-        'FK_WindowsProcessorInventory_ManagedServer_ManagedServerId',
-        'FK_WindowsDiskInventory_ManagedServer_ManagedServerId',
-        'FK_WindowsVolumeInventory_ManagedServer_ManagedServerId',
-        'FK_WindowsNetworkAdapterInventory_ManagedServer_ManagedServerId',
-        'FK_WindowsIpv4AddressInventory_ManagedServer_ManagedServerId',
-        'FK_WindowsIpv4AddressInventory_WindowsNetworkAdapterInventory_NetworkAdapterInventoryId_ManagedServerId'
-    )
-    $indexes=@(
-        'UX_ManagedServer_Fqdn',
-        'IX_ManagedServer_Eligibility',
-        'IX_ManagedServer_InventoryEligibility',
-        'UX_WindowsMemoryInventory_ManagedServer_ModuleKey',
-        'UX_WindowsProcessorInventory_ManagedServer_StableSourceKey',
-        'UX_WindowsDiskInventory_ManagedServer_StableSourceKey',
-        'UX_WindowsVolumeInventory_ManagedServer_StableSourceKey',
-        'UX_WindowsNetworkAdapterInventory_ManagedServer_StableSourceKey',
-        'UX_WindowsIpv4AddressInventory_ManagedServer_StableSourceKey',
-        'IX_WindowsIpv4AddressInventory_NetworkAdapterInventoryId',
-        'IX_WindowsIpv4AddressInventory_NetworkAdapterInventoryId_ManagedServerId'
-    )
+    if(-not $discoveredMigrationIds.Count){throw 'No repository migrations were found.'}
+    $migrationIds=@($manifest.expectedMigrations|ForEach-Object{[string]$_})
+    $uniqueMigrationIds=@($migrationIds|Select-Object -Unique)
+    if($migrationIds.Count -ne $uniqueMigrationIds.Count){
+        throw 'Database schema expectation contains duplicate migration identifiers.'
+    }
+    if(($migrationIds -join "`n") -ne ((@($migrationIds|Sort-Object)) -join "`n")){
+        throw 'Database schema expectation migration ordering is not deterministic.'
+    }
+    if(($migrationIds -join "`n") -ne ($discoveredMigrationIds -join "`n")){
+        throw 'Database schema expectation is stale relative to repository migrations.'
+    }
+    if([string]$manifest.latestMigration -ne $migrationIds[-1]){
+        throw 'Database schema expectation latest migration is inconsistent.'
+    }
     [pscustomobject][ordered]@{
-        MigrationIds=$migrationIds;LatestMigrationId=$migrationIds[-1]
-        Schemas=@('configuration','inventory');Tables=$tables
-        ForeignKeys=$foreignKeys;Indexes=$indexes
+        ValidationSchemaVersion=[string]$manifest.validationSchemaVersion
+        MigrationPolicy=[string]$manifest.migrationPolicy
+        MigrationIds=$migrationIds;LatestMigrationId=[string]$manifest.latestMigration
+        Schemas=@($manifest.schemas);Tables=@($manifest.tables)
+        PrimaryKeys=@($manifest.primaryKeys);ForeignKeys=@($manifest.foreignKeys)
+        UniqueConstraints=@($manifest.uniqueConstraints)
+        Indexes=@($manifest.criticalIndexes)
+        CheckConstraints=@($manifest.criticalCheckConstraints)
+        RuntimePermissionTables=@($manifest.runtimePermissionTables)
     }
 }
 
@@ -158,8 +148,10 @@ function Test-PSMOperationsDatabaseSchemaCore {
     )
     $checks=New-Object System.Collections.Generic.List[object]
     $connection=$null
-    $appliedMigrations=@();$missingMigrations=@();$missingSchemas=@();$missingTables=@()
-    $missingConstraints=@();$missingIndexes=@();$permissionStatus='NOT_CHECKED'
+    $appliedMigrations=@();$missingMigrations=@();$unexpectedMigrations=@()
+    $missingSchemas=@();$missingTables=@();$missingPrimaryKeys=@()
+    $missingConstraints=@();$missingUniqueConstraints=@()
+    $missingIndexes=@();$missingCheckConstraints=@();$permissionStatus='NOT_CHECKED'
     try{
         if([string]::IsNullOrWhiteSpace([string]$Parameters.SqlServer)){throw 'SQL_SERVER_MISSING'}
         if([string]::IsNullOrWhiteSpace([string]$Parameters.DatabaseName)){throw 'DATABASE_NAME_MISSING'}
@@ -211,8 +203,11 @@ SELECT CASE WHEN OBJECT_ID(N'dbo.__EFMigrationsHistory',N'U') IS NULL THEN 0 ELS
 SELECT MigrationId FROM dbo.__EFMigrationsHistory ORDER BY MigrationId;
 '@ | ForEach-Object{[string]$_.MigrationId})
             $missingMigrations=@($Requirements.MigrationIds|Where-Object{$_ -notin $appliedMigrations})
+            $unexpectedMigrations=@($appliedMigrations|Where-Object{$_ -notin $Requirements.MigrationIds})
             Add-PSMDatabaseRequirementChecks $checks 'MigrationHistory' 'MIGRATION.REQUIRED' `
                 $Requirements.MigrationIds $appliedMigrations 'migration'
+            Add-PSMDatabaseRequirementChecks $checks 'MigrationHistory' 'MIGRATION.ALLOWED' `
+                $appliedMigrations $Requirements.MigrationIds 'approved migration'
         }else{
             $missingMigrations=@($Requirements.MigrationIds)
             Add-PSMDatabaseRequirementChecks $checks 'MigrationHistory' 'MIGRATION.REQUIRED' `
@@ -220,7 +215,7 @@ SELECT MigrationId FROM dbo.__EFMigrationsHistory ORDER BY MigrationId;
         }
 
         $schemas=@(& $Operations.QueryRows $connection @'
-SELECT name AS SchemaName FROM sys.schemas WHERE name IN (N'configuration',N'inventory') ORDER BY name;
+SELECT name AS SchemaName FROM sys.schemas ORDER BY name;
 '@ | ForEach-Object{[string]$_.SchemaName})
         $missingSchemas=@($Requirements.Schemas|Where-Object{$_ -notin $schemas})
         Add-PSMDatabaseRequirementChecks $checks 'Schema' 'SCHEMA.REQUIRED' `
@@ -229,37 +224,50 @@ SELECT name AS SchemaName FROM sys.schemas WHERE name IN (N'configuration',N'inv
         $tables=@(& $Operations.QueryRows $connection @'
 SELECT s.name + N'.' + t.name AS TableName
 FROM sys.tables t JOIN sys.schemas s ON s.schema_id=t.schema_id
-WHERE (s.name=N'configuration' AND t.name=N'ManagedServer')
-   OR (s.name=N'inventory' AND t.name IN
-      (N'WindowsComputerInventory',N'WindowsOperatingSystemInventory',N'WindowsMemoryInventory',
-       N'WindowsProcessorInventory',N'WindowsDiskInventory',N'WindowsVolumeInventory',
-       N'WindowsNetworkAdapterInventory',N'WindowsIpv4AddressInventory'))
 ORDER BY s.name,t.name;
 '@ | ForEach-Object{[string]$_.TableName})
         $missingTables=@($Requirements.Tables|Where-Object{$_ -notin $tables})
         Add-PSMDatabaseRequirementChecks $checks 'Tables' 'TABLE.REQUIRED' `
             $Requirements.Tables $tables 'table'
 
+        $primaryKeys=@(& $Operations.QueryRows $connection @'
+SELECT name AS ConstraintName FROM sys.key_constraints WHERE type=N'PK' ORDER BY name;
+'@ | ForEach-Object{[string]$_.ConstraintName})
+        $missingPrimaryKeys=@($Requirements.PrimaryKeys|Where-Object{$_ -notin $primaryKeys})
+        Add-PSMDatabaseRequirementChecks $checks 'Constraints' 'PRIMARYKEY.REQUIRED' `
+            $Requirements.PrimaryKeys $primaryKeys 'primary key'
+
         $foreignKeys=@(& $Operations.QueryRows $connection @'
-SELECT name AS ConstraintName FROM sys.foreign_keys
-WHERE name LIKE N'FK_Windows%Inventory_%' ORDER BY name;
+SELECT name AS ConstraintName FROM sys.foreign_keys ORDER BY name;
 '@ | ForEach-Object{[string]$_.ConstraintName})
         $missingConstraints=@($Requirements.ForeignKeys|Where-Object{$_ -notin $foreignKeys})
         Add-PSMDatabaseRequirementChecks $checks 'Constraints' 'CONSTRAINT.REQUIRED' `
             $Requirements.ForeignKeys $foreignKeys 'foreign key'
+
+        $uniqueConstraints=@(& $Operations.QueryRows $connection @'
+SELECT name AS ConstraintName FROM sys.key_constraints WHERE type=N'UQ' ORDER BY name;
+'@ | ForEach-Object{[string]$_.ConstraintName})
+        $missingUniqueConstraints=@($Requirements.UniqueConstraints|Where-Object{$_ -notin $uniqueConstraints})
+        Add-PSMDatabaseRequirementChecks $checks 'Constraints' 'UNIQUE.REQUIRED' `
+            $Requirements.UniqueConstraints $uniqueConstraints 'unique constraint'
 
         $indexes=@(& $Operations.QueryRows $connection @'
 SELECT i.name AS IndexName
 FROM sys.indexes i JOIN sys.tables t ON t.object_id=i.object_id
 JOIN sys.schemas s ON s.schema_id=t.schema_id
 WHERE i.name IS NOT NULL
-  AND ((s.name=N'configuration' AND t.name=N'ManagedServer')
-    OR (s.name=N'inventory' AND t.name LIKE N'Windows%Inventory'))
 ORDER BY i.name;
 '@ | ForEach-Object{[string]$_.IndexName})
         $missingIndexes=@($Requirements.Indexes|Where-Object{$_ -notin $indexes})
         Add-PSMDatabaseRequirementChecks $checks 'Constraints' 'INDEX.REQUIRED' `
             $Requirements.Indexes $indexes 'index'
+
+        $checkConstraints=@(& $Operations.QueryRows $connection @'
+SELECT name AS ConstraintName FROM sys.check_constraints ORDER BY name;
+'@ | ForEach-Object{[string]$_.ConstraintName})
+        $missingCheckConstraints=@($Requirements.CheckConstraints|Where-Object{$_ -notin $checkConstraints})
+        Add-PSMDatabaseRequirementChecks $checks 'Constraints' 'CHECK.REQUIRED' `
+            $Requirements.CheckConstraints $checkConstraints 'check constraint'
 
         $permissions=@(& $Operations.QueryRows $connection @'
 SELECT N'configuration.ManagedServer' AS TableName,
@@ -281,7 +289,7 @@ WHERE s.name=N'inventory' AND t.name IN
 '@)
         $permissionFailures=New-Object System.Collections.Generic.List[string]
         $permissionUnknown=New-Object System.Collections.Generic.List[string]
-        foreach($table in $Requirements.Tables){
+        foreach($table in $Requirements.RuntimePermissionTables){
             $row=$permissions|Where-Object TableName -eq $table|Select-Object -First 1
             $required=if($table -eq 'configuration.ManagedServer'){@('CanSelect','CanUpdate')}else{@('CanSelect','CanInsert','CanUpdate','CanDelete')}
             foreach($name in $required){
@@ -344,12 +352,15 @@ WHERE s.name=N'inventory' AND t.name IN
     $failures=@($checks|Where-Object Status -eq 'FAIL')
     $warnings=@($checks|Where-Object Status -eq 'WARNING')
     [pscustomobject][ordered]@{
-        SchemaVersion='1.0';OverallStatus=if($failures){'NOT_READY'}elseif($warnings){'WARNING'}else{'READY'}
+        SchemaVersion=$Requirements.ValidationSchemaVersion;OverallStatus=if($failures){'NOT_READY'}elseif($warnings){'WARNING'}else{'READY'}
         ExitCode=if($failures){2}elseif($warnings){1}else{0};Checks=$checks.ToArray()
         ExpectedMigrationIds=@($Requirements.MigrationIds);AppliedMigrationIds=@($appliedMigrations)
-        MissingMigrationIds=@($missingMigrations);MissingSchemas=@($missingSchemas)
-        MissingTables=@($missingTables);MissingConstraints=@($missingConstraints)
-        MissingIndexes=@($missingIndexes);PermissionValidationStatus=$permissionStatus
+        MissingMigrationIds=@($missingMigrations);UnexpectedMigrationIds=@($unexpectedMigrations)
+        MissingSchemas=@($missingSchemas);MissingTables=@($missingTables)
+        MissingPrimaryKeys=@($missingPrimaryKeys);MissingConstraints=@($missingConstraints)
+        MissingUniqueConstraints=@($missingUniqueConstraints)
+        MissingIndexes=@($missingIndexes);MissingCheckConstraints=@($missingCheckConstraints)
+        PermissionValidationStatus=$permissionStatus
     }
 }
 

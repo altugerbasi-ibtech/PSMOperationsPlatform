@@ -3,44 +3,7 @@ $toolRoot=Join-Path $repoRoot 'tools\deployment'
 . (Join-Path $toolRoot 'PSMOperationsDatabaseValidation.Common.ps1')
 
 function New-DatabaseRequirements {
-    [pscustomobject]@{
-        MigrationIds=@(
-            '20260726133749_InitialCreate',
-            '20260727120000_AddManagedServerConnectivityEligibility',
-            '20260727160000_AddManagedServerWinRmConfiguration',
-            '20260727190000_AddManagedServerConnectivityState',
-            '20260727230000_AddWindowsInventoryCurrentState',
-            '20260728093000_WP0071CoreInventoryReliability')
-        LatestMigrationId='20260728093000_WP0071CoreInventoryReliability'
-        Schemas=@('configuration','inventory')
-        Tables=@(
-            'configuration.ManagedServer','inventory.WindowsComputerInventory',
-            'inventory.WindowsOperatingSystemInventory','inventory.WindowsMemoryInventory',
-            'inventory.WindowsProcessorInventory','inventory.WindowsDiskInventory',
-            'inventory.WindowsVolumeInventory','inventory.WindowsNetworkAdapterInventory',
-            'inventory.WindowsIpv4AddressInventory')
-        ForeignKeys=@(
-            'FK_WindowsComputerInventory_ManagedServer_ManagedServerId',
-            'FK_WindowsOperatingSystemInventory_ManagedServer_ManagedServerId',
-            'FK_WindowsMemoryInventory_ManagedServer_ManagedServerId',
-            'FK_WindowsProcessorInventory_ManagedServer_ManagedServerId',
-            'FK_WindowsDiskInventory_ManagedServer_ManagedServerId',
-            'FK_WindowsVolumeInventory_ManagedServer_ManagedServerId',
-            'FK_WindowsNetworkAdapterInventory_ManagedServer_ManagedServerId',
-            'FK_WindowsIpv4AddressInventory_ManagedServer_ManagedServerId',
-            'FK_WindowsIpv4AddressInventory_WindowsNetworkAdapterInventory_NetworkAdapterInventoryId_ManagedServerId')
-        Indexes=@(
-            'UX_ManagedServer_Fqdn','IX_ManagedServer_Eligibility',
-            'IX_ManagedServer_InventoryEligibility',
-            'UX_WindowsMemoryInventory_ManagedServer_ModuleKey',
-            'UX_WindowsProcessorInventory_ManagedServer_ProcessorKey',
-            'UX_WindowsDiskInventory_ManagedServer_StableSourceKey',
-            'UX_WindowsVolumeInventory_ManagedServer_StableSourceKey',
-            'UX_WindowsNetworkAdapterInventory_ManagedServer_StableSourceKey',
-            'UX_WindowsIpv4AddressInventory_ManagedServer_StableSourceKey',
-            'IX_WindowsIpv4AddressInventory_NetworkAdapterInventoryId',
-            'IX_WindowsIpv4AddressInventory_NetworkAdapterInventoryId_ManagedServerId')
-    }
+    Get-PSMOperationsDatabaseRequirements $repoRoot
 }
 
 function New-DatabaseState {
@@ -48,7 +11,9 @@ function New-DatabaseState {
     @{
         HistoryExists=$true;AppliedMigrations=@($requirements.MigrationIds)
         Schemas=@($requirements.Schemas);Tables=@($requirements.Tables)
-        ForeignKeys=@($requirements.ForeignKeys);Indexes=@($requirements.Indexes)
+        PrimaryKeys=@($requirements.PrimaryKeys);ForeignKeys=@($requirements.ForeignKeys)
+        UniqueConstraints=@($requirements.UniqueConstraints)
+        Indexes=@($requirements.Indexes);CheckConstraints=@($requirements.CheckConstraints)
         PermissionMode='Sufficient';ConnectionFailure=$null
         Queries=(New-Object System.Collections.Generic.List[string])
         Reports=@{}
@@ -78,7 +43,16 @@ function New-DatabaseOperations {
                 return @($State.Tables|ForEach-Object{[pscustomobject]@{TableName=$_}})
             }
             if($query -match 'FROM sys\.foreign_keys'){return @($State.ForeignKeys|ForEach-Object{[pscustomobject]@{ConstraintName=$_}})}
+            if($query -match 'FROM sys\.key_constraints' -and $query -match "type=N'PK'"){
+                return @($State.PrimaryKeys|ForEach-Object{[pscustomobject]@{ConstraintName=$_}})
+            }
+            if($query -match 'FROM sys\.key_constraints' -and $query -match "type=N'UQ'"){
+                return @($State.UniqueConstraints|ForEach-Object{[pscustomobject]@{ConstraintName=$_}})
+            }
             if($query -match 'FROM sys\.indexes'){return @($State.Indexes|ForEach-Object{[pscustomobject]@{IndexName=$_}})}
+            if($query -match 'FROM sys\.check_constraints'){
+                return @($State.CheckConstraints|ForEach-Object{[pscustomobject]@{ConstraintName=$_}})
+            }
             if($query -match 'HAS_PERMS_BY_NAME'){
                 return @($State.Tables|ForEach-Object{
                     $value=if($State.PermissionMode -eq 'Inconclusive'){$null}
@@ -104,7 +78,11 @@ Describe 'Operations Database schema validation' {
     It 'accepts a fully migrated database and derives every migration from the repository' {
         $derived=Get-PSMOperationsDatabaseRequirements $repoRoot
         ($derived.MigrationIds -join ',') | Should Be ((New-DatabaseRequirements).MigrationIds -join ',')
-        $derived.LatestMigrationId | Should Be '20260728093000_WP0071CoreInventoryReliability'
+        $derived.MigrationIds.Count | Should Be 17
+        $derived.LatestMigrationId | Should Be '20260729191745_WP0088ExecutionHistory'
+        ($derived.Tables -contains 'history.ExecutionRunHistory') | Should Be $true
+        ($derived.Tables -contains 'audit.Audit') | Should Be $false
+        ($derived.Tables -contains 'monitoring.ExecutionHistory') | Should Be $false
         $result=Invoke-DatabaseValidation (New-DatabaseState)
         $result.OverallStatus | Should Be READY
         $result.ExitCode | Should Be 0
@@ -155,27 +133,60 @@ Describe 'Operations Database schema validation' {
         $state=New-DatabaseState;$state.HistoryExists=$false
         $result=Invoke-DatabaseValidation $state
         ($result.Checks|Where-Object CheckId -eq MIGRATION.HISTORY).Status | Should Be FAIL
-        $result.MissingMigrationIds.Count | Should Be 6
-        @($result.Checks|Where-Object{$_.CheckId -like 'MIGRATION.REQUIRED.*' -and $_.Status -eq 'FAIL'}).Count | Should Be 6
+        $result.MissingMigrationIds.Count | Should Be 17
+        @($result.Checks|Where-Object{$_.CheckId -like 'MIGRATION.REQUIRED.*' -and $_.Status -eq 'FAIL'}).Count | Should Be 17
     }
 
     It 'reports one and multiple missing migrations individually' {
         foreach($count in @(1,2)){
             $state=New-DatabaseState
-            $state.AppliedMigrations=@($state.AppliedMigrations|Select-Object -First (6-$count))
+            $state.AppliedMigrations=@($state.AppliedMigrations|Select-Object -First (17-$count))
             $result=Invoke-DatabaseValidation $state
             $result.MissingMigrationIds.Count | Should Be $count
             @($result.Checks|Where-Object{$_.CheckId -like 'MIGRATION.REQUIRED.*' -and $_.Status -eq 'FAIL'}).Count | Should Be $count
         }
     }
 
+    It 'rejects an unexpected applied migration under the exact-set policy' {
+        $state=New-DatabaseState
+        $state.AppliedMigrations+=@('20990101000000_Unexpected')
+        $result=Invoke-DatabaseValidation $state
+        $result.OverallStatus | Should Be NOT_READY
+        $result.UnexpectedMigrationIds.Count | Should Be 1
+        @($result.Checks|Where-Object{
+            $_.CheckId -like 'MIGRATION.ALLOWED.*' -and $_.Status -eq 'FAIL'}).Count | Should Be 1
+    }
+
+    It 'keeps the manifest ordered, duplicate-free, and equal to repository migrations' {
+        $requirements=Get-PSMOperationsDatabaseRequirements $repoRoot
+        $requirements.MigrationPolicy | Should Be ExactOrderedSet
+        @($requirements.MigrationIds|Select-Object -Unique).Count |
+            Should Be $requirements.MigrationIds.Count
+        ($requirements.MigrationIds -join "`n") |
+            Should Be ((@($requirements.MigrationIds|Sort-Object)) -join "`n")
+    }
+
+    It 'detects a stale migration manifest without database access' {
+        $fixture=Join-Path $TestDrive 'repository'
+        $migrationRoot=Join-Path $fixture 'src\PSMOperationsPlatform.Infrastructure\Persistence\Migrations'
+        $manifestRoot=Join-Path $fixture 'tools\deployment'
+        $null=New-Item -ItemType Directory -Path $migrationRoot -Force
+        $null=New-Item -ItemType Directory -Path $manifestRoot -Force
+        Copy-Item (Join-Path $toolRoot 'PSMOperationsDatabaseSchemaExpectation.json') `
+            (Join-Path $manifestRoot 'PSMOperationsDatabaseSchemaExpectation.json')
+        Set-Content -LiteralPath (Join-Path $migrationRoot '20260726133749_InitialCreate.cs') `
+            -Value 'public class InitialCreate : Migration {}'
+        { Get-PSMOperationsDatabaseRequirements $fixture } |
+            Should Throw 'Database schema expectation is stale relative to repository migrations.'
+    }
+
     It 'reports each missing schema and table independently' {
         $state=New-DatabaseState;$state.Schemas=@()
         $state.Tables=@('inventory.WindowsProcessorInventory')
         $result=Invoke-DatabaseValidation $state
-        $result.MissingSchemas.Count | Should Be 2
-        $result.MissingTables.Count | Should Be 8
-        @($result.Checks|Where-Object{$_.Category -eq 'Tables' -and $_.Status -eq 'FAIL'}).Count | Should Be 8
+        $result.MissingSchemas.Count | Should Be 8
+        $result.MissingTables.Count | Should Be 39
+        @($result.Checks|Where-Object{$_.Category -eq 'Tables' -and $_.Status -eq 'FAIL'}).Count | Should Be 39
     }
 
     It 'reports missing ManagedServer, singular, plural, and IPv4 tables' {
@@ -227,7 +238,7 @@ Describe 'Operations Database schema validation' {
         $state=New-DatabaseState;$result=Invoke-DatabaseValidation $state
         $paths=Write-PSMOperationsDatabaseValidationReports $result 'C:\evidence\database.json' (New-DatabaseOperations $state)
         $json=$state.Reports[$paths.JsonPath]|ConvertFrom-Json
-        $json.SchemaVersion | Should Be '1.0'
+        $json.SchemaVersion | Should Be '2.0'
         $json.Checks[0].PSObject.Properties.Name -join ',' | Should Be `
             'CheckId,Category,Name,Status,Severity,Summary,Evidence,Recommendation,IsBlocking,IsMandatory,DurationMilliseconds'
         $state.Reports[$paths.MarkdownPath] | Should Match '# PSM Operations Database Schema Validation'

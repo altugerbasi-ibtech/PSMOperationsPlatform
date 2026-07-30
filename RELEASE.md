@@ -14,9 +14,9 @@ execution and production certification are not complete.
 
 | Field | Value |
 |---|---|
-| Release | 0.1.0 |
-| Status | Controlled Lab Preparation Complete |
-| Repository State | Active Development |
+| Release | v1.0.0-rc1 |
+| Status | WP-008.9 Approved — Release Candidate Capture |
+| Repository State | Technically Ready; Immutable Revision Being Captured |
 
 ## Completed Milestones
 
@@ -29,6 +29,12 @@ execution and production certification are not complete.
 - WP-005.3 — Inventory Persistence Foundation
 - WP-005.S1 — Controlled Lab Smoke Test Preparation
 - WP-005.S2 — Collector Environment Validation Framework
+- WP-008.4 — Collector Runtime (Approved; integration pending)
+- WP-008.5 — Execution Dispatcher (Approved; integration pending)
+- WP-008.6 — Collector Plugin SDK (Approved; integration pending)
+- WP-008.7 — Execution Monitoring (Approved; integration pending)
+- WP-008.7.Q — Execution Monitoring Quality Completion (Approved; integration pending)
+- WP-008.8 — Execution History (Approved; integration pending)
 
 WP-005.S1 is preparation-complete; its controlled-lab execution phase has not
 been authorized or executed.
@@ -79,17 +85,19 @@ been authorized or executed.
 - DNS Alias Discovery remains a separate future work package.
 - Durable command queue behavior remains planned; ADR-002 defines its
   architectural direction.
-- The accepted ADR-005 source document is missing and requires restoration
-  through architecture governance.
+- ADR-005 has been restored from repository-supported authority; timestamp
+  governance is no longer a release-readiness blocker.
 
 ## Next Milestone
 
-The next product milestone recorded in the roadmap is Windows Service
-discovery and inventory; its work-package number is not yet assigned. Before
-production certification, the prepared WP-005.S1 controlled-lab execution gate
-must also be completed with approved non-production topology, identities,
-database, network conditions, evidence capture, and no-mutation confirmation.
-The repository does not currently define an approved WP-006.
+The next gate is a repeated Repository Readiness Review v1.0 of WP-008.9.
+WP-007.Z Real Integration and Production Validation remains deferred and not
+started. Live WinRM, SQL, IIS, inventory, monitoring, history, deployment,
+installer, rollback, and upgrade evidence may be collected only under that
+separately authorized integration package.
+
+The authoritative immutable source record for that gate is
+[WP-007.Z Golden Baseline](docs/release/WP-007.Z-Golden-Baseline.md).
 
 ## Repository Health
 
@@ -100,7 +108,7 @@ The repository does not currently define an approved WP-006.
 | Documentation | High — architecture, work packages, security, deployment preparation, and testing guidance are maintained |
 | Deployment | Preparation complete — controlled-lab execution and production certification remain pending |
 | Maintainability | High — explicit modules, stores, configuration providers, and test seams avoid hidden runtime behavior |
-| Technical Debt | Low but visible — missing ADR-005 source and roadmap/baseline numbering inconsistency are documented |
+| Technical Debt | Low but visible — roadmap/baseline numbering inconsistency remains documented |
 
 ## Version History
 

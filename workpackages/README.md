@@ -10,6 +10,14 @@ product: PSM Operations Platform
 ---
 # Work Package Specifications
 
+[`WP-008.9`](WP-008.9.md) is the release-gate remediation specification for
+findings B1 through B5 from Repository Readiness Review v1.0. It is Approved,
+adds no product capability, and defers live validation to WP-007.Z.
+
+WP-008.5, WP-008.6, WP-008.7, WP-008.7.Q, and WP-008.8 are Approved from the
+recorded human review. WP-008.4 is an approved historical package whose review
+records remain under `docs/tasks/`. All remain integration-pending WP-007.Z.
+
 WP-008.8 establishes durable Execution History while preserving the explicit
 History-versus-Audit boundary. Future Audit work requires its own approved
 specification and may not silently extend WP-008.8.

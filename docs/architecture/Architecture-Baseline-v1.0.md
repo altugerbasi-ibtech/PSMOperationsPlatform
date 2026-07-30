@@ -986,10 +986,9 @@ bounded Work Package above; command behavior remains future scope.
 - ADR-005 — Türkiye Local Time Standard
 - ADR-006 — Inventory Ownership Boundaries
 
-ADR-005 remains accepted in this baseline but its source file is missing and
-must be restored through architecture governance. ADR-006 explicitly confirms
-the existing Türkiye local-time standard for WP-005 inventory, so the missing
-ADR-005 source does not block WP-005.3.
+ADR-005 remains accepted in this baseline. Its restored source and ADR-006
+consistently preserve the existing Türkiye local-time standard for
+application-owned persisted timestamps and WP-005 inventory.
 
 ## 21. Prohibited drift
 

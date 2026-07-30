@@ -206,9 +206,8 @@ Artifact creation and deployment-directory suffixes may use UTC when the
 relevant deployment standard explicitly defines them; that does not change
 application-owned durable timestamp semantics.
 
-ADR-005 is referenced as accepted but its source file is missing. ADR-006
-reaffirms inventory timestamp behavior. The missing ADR remains
-**TECHNICAL DEBT**.
+ADR-005 is accepted and its restored source records the authoritative
+Türkiye-local-time standard. ADR-006 reaffirms inventory timestamp behavior.
 
 ## 8. WinRM and Kerberos Standards
 
@@ -869,10 +868,10 @@ and merge policy is **UNRESOLVED**. Do not invent one.
 
 | Debt or conflict | Classification | Current instruction |
 |---|---|---|
-| ADR-005 Türkiye-local-time source file is missing | **TECHNICAL DEBT** | Follow ADR-006 and approved current implementation; restore governance artifact separately |
+| ADR-005 Türkiye-local-time authority | **RESOLVED** | The accepted source is restored and remains consistent with ADR-006 and current implementation |
 | EF design-time tooling uses unprefixed `ConnectionStrings__OperationsDatabase` while runtime uses `PSM__` | **TECHNICAL DEBT** | Treat as tooling-only inconsistency; do not weaken runtime prefix |
 | Legacy generic `IRepository<TEntity>` / `Repository<TEntity>` coexist with newer no-Generic-Repository direction | **UNRESOLVED / TECHNICAL DEBT** | Do not expand or remove without a scoped decision |
-| Older Negotiate documents conflict with newer Kerberos-only implementation | **RESOLVED BY NEWER APPROVED SOURCES** | Kerberos-only is current; historical files require later cleanup |
+| Older Negotiate documents conflict with newer Kerberos-only implementation | **RESOLVED** | Active operational guidance now requires explicit Kerberos and prohibits authentication downgrade |
 | Older singular total-memory model conflicts with WP-007 physical-module model | **RESOLVED BY ADR-006 v2 and WP-007 implementation** | Use plural module inventory |
 | Older independently committed inventory boundaries conflict with WP-007 atomic core transaction | **RESOLVED BY ADR-006 v2** | Use one all-core transaction |
 | Older remote-first deployment material conflicts with WP-006.8 | **RESOLVED BY NEWER APPROVED SOURCE** | Use package-first local deployment |

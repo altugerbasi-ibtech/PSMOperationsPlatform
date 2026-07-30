@@ -1,21 +1,30 @@
 Set-StrictMode -Version Latest
 
-function ConvertTo-WinRmFailureCategory {
+function Get-WinRmFailureClassification {
     [CmdletBinding()]
     param([Parameter(Mandatory)][System.Management.Automation.ErrorRecord]$ErrorRecord)
     $id = [string]$ErrorRecord.FullyQualifiedErrorId
     $type = $ErrorRecord.Exception.GetType().Name
     $safe = "$id $type $($ErrorRecord.Exception.Message)"
-    if ($safe -match 'Certificate|TLS|SSL|Trust') { return 'TlsFailure' }
-    if ($safe -match 'OperationCanceled|TaskCanceled|Cancellation') { return 'Cancelled' }
-    if ($safe -match 'Unauthorized|Authorization') { return 'AuthorizationFailure' }
-    if ($safe -match 'Authentication|LogonFailure|AccessDenied') { return 'AuthenticationFailure' }
-    if ($safe -match 'NameResolution|Dns|SocketException') { return 'DnsFailure' }
-    if ($safe -match 'ConnectionRefused') { return 'ConnectionRefused' }
-    if ($safe -match 'Timeout') { return 'Timeout' }
-    if ($safe -match 'WinRM|WSMan') { return 'WinRmUnavailable' }
-    if ($safe -match 'Protocol') { return 'ProtocolFailure' }
-    return 'Unexpected'
+    if ($safe -match 'Certificate|TLS|SSL|Trust') {
+        return @{ Category='CertificateOrTransportFailure'; TransportFallbackEligible=$true }
+    }
+    if ($safe -match 'KDC_ERR_S_PRINCIPAL_UNKNOWN|target principal name is incorrect|SPN|delegation') {
+        return @{ Category='SPNOrDelegationFailure'; TransportFallbackEligible=$false }
+    }
+    if ($safe -match 'Unauthorized|Authorization|Authentication|LogonFailure|AccessDenied|0x8009030e') {
+        return @{ Category='KerberosAuthenticationFailed'; TransportFallbackEligible=$false }
+    }
+    if ($safe -match 'NameResolution|Dns') {
+        return @{ Category='InvalidConfiguration'; TransportFallbackEligible=$false }
+    }
+    if ($safe -match 'ConnectionRefused|Timeout|WinRM|WSMan|SocketException|Protocol') {
+        return @{ Category='EndpointUnavailable'; TransportFallbackEligible=$true }
+    }
+    if ($safe -match 'OperationCanceled|TaskCanceled|Cancellation|Argument|Parameter') {
+        return @{ Category='InvalidConfiguration'; TransportFallbackEligible=$false }
+    }
+    return @{ Category='Unexpected'; TransportFallbackEligible=$false }
 }
 
 function Test-WinRmAttempt {
@@ -25,16 +34,27 @@ function Test-WinRmAttempt {
         $Operations = @{
             TestWsMan = {
                 param($name,$endpointPort,$ssl)
-                if ($ssl) { Test-WSMan -ComputerName $name -Port $endpointPort -UseSSL -Authentication Negotiate -ErrorAction Stop }
-                else { Test-WSMan -ComputerName $name -Port $endpointPort -Authentication Negotiate -ErrorAction Stop }
+                if ($ssl) { Test-WSMan -ComputerName $name -Port $endpointPort -UseSSL -Authentication Kerberos -ErrorAction Stop }
+                else { Test-WSMan -ComputerName $name -Port $endpointPort -Authentication Kerberos -ErrorAction Stop }
             }
         }
     }
     try {
         $null = & $Operations.TestWsMan $HostName $Port $UseSsl
-        return @{ Success=$true; Category='None'; Evidence='Authenticated WSMan identity response received.' }
+        return @{
+            Success=$true
+            Category='KerberosSucceeded'
+            TransportFallbackEligible=$false
+            Evidence='Explicit Kerberos WSMan identity response received; no credential or ticket data retained.'
+        }
     } catch {
-        return @{ Success=$false; Category=(ConvertTo-WinRmFailureCategory $_); Evidence='WSMan failure safely classified; exception text suppressed.' }
+        $classification=Get-WinRmFailureClassification $_
+        return @{
+            Success=$false
+            Category=$classification.Category
+            TransportFallbackEligible=$classification.TransportFallbackEligible
+            Evidence='Explicit Kerberos WSMan failure safely classified; exception text suppressed.'
+        }
     }
 }
 
@@ -67,7 +87,7 @@ function Test-WinRmReadiness {
         return $results.ToArray()
     }
     $https = Test-WinRmAttempt -HostName $Parameters.TargetFqdn -Port $Parameters.WinRmHttpsPort -UseSsl $true -Operations $Operations
-    $eligible = $https.Category -in @('TlsFailure','ConnectionRefused','Timeout','WinRmUnavailable','ProtocolFailure')
+    $eligible = [bool]$https.TransportFallbackEligible
     $httpsStatus = if ($https.Success) { 'PASS' }
         elseif ($Parameters.TransportPolicy -eq 'Auto' -and $eligible) { 'WARNING' }
         else { 'FAIL' }

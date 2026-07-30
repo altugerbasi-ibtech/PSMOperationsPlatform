@@ -589,7 +589,7 @@ Describe 'Network and WinRM policy' {
         (Test-WinRmReadiness (New-TestParameters) $ops | Where-Object CheckId -eq WINRM.HTTP.FALLBACK).Status | Should Be SKIPPED
     }
     It 'DNS failure prevents fallback' {
-        $ops = @{TestWsMan={param($n,$port,$ssl) throw [System.Net.Sockets.SocketException]::new()}}
+        $ops = @{TestWsMan={param($n,$port,$ssl) throw [System.InvalidOperationException]::new('NameResolution failure')}}
         (Test-WinRmReadiness (New-TestParameters) $ops | Where-Object CheckId -eq WINRM.HTTP.FALLBACK).Status | Should Be SKIPPED
     }
     It 'cancellation prevents fallback' {
@@ -601,6 +601,22 @@ Describe 'Network and WinRM policy' {
         $checks = Test-WinRmReadiness (New-TestParameters) $ops
         ($checks | Where-Object CheckId -eq WINRM.HTTPS).Evidence | Should Not Match 'Certificate'
         ($checks | Where-Object CheckId -eq WINRM.HTTP.FALLBACK).Status | Should Be PASS
+    }
+    It 'uses explicit Kerberos with no authentication downgrade path' {
+        $text = Get-Content -Raw (Join-Path $root 'WinRmValidation.ps1')
+        $text | Should Match '(?i)-Authentication\s+Kerberos'
+        $text | Should Not Match '(?i)-Authentication\s+(Negotiate|Default|Basic|CredSSP)'
+        $text | Should Not Match '(?i)\bPSCredential\b|\bCredential\s*='
+        $text | Should Not Match '(?i)(Set-Item|New-Item|Remove-Item).{0,80}TrustedHosts|SkipCACheck|SkipCNCheck|SkipRevocationCheck'
+    }
+    It 'reports the bounded Kerberos readiness categories without exposing raw errors' {
+        $success=Test-WinRmAttempt target.example.test 5986 $true @{TestWsMan={param($n,$p,$ssl) @{ok=$true}}}
+        $success.Category | Should Be KerberosSucceeded
+        foreach($name in @('KerberosAuthenticationFailed','EndpointUnavailable',
+            'SPNOrDelegationFailure','CertificateOrTransportFailure',
+            'InvalidConfiguration','Unexpected')){
+            (Get-Content -Raw (Join-Path $root 'WinRmValidation.ps1')) | Should Match $name
+        }
     }
 }
 

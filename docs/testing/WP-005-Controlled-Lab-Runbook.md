@@ -35,7 +35,8 @@ Then use the same narrow product projections:
 
 ```powershell
 $s = New-PSSession -ComputerName '<LAB_TARGET_FQDN>' -UseSSL `
-  -Port <HTTPS_PORT> -Authentication Negotiate
+  -Port <HTTPS_PORT> -Authentication Kerberos `
+  -SessionOption (New-PSSessionOption -IncludePortInSPN)
 Invoke-Command -Session $s -ScriptBlock {
   Get-CimInstance Win32_ComputerSystem -Property Name,Domain,Manufacturer,Model
   Get-CimInstance Win32_BIOS -Property SerialNumber
@@ -57,6 +58,9 @@ Remove-PSSession $s
 ```
 
 For approved HTTP omit `-UseSSL` and use its port. Never use `Select *`.
+Kerberos must succeed explicitly. Negotiate is not accepted as Kerberos proof,
+and any NTLM fallback invalidates readiness. Do not retry with Default,
+Negotiate, Basic, or CredSSP authentication after a failure.
 
 ## 4. Execute collector
 

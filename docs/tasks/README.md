@@ -1,6 +1,6 @@
 ---
 title: Work Packages
-version: 1.15.0
+version: 1.16.0
 status: Approved
 owner: Engineering
 last_updated: 2026-07-27
@@ -34,11 +34,15 @@ specification in both locations.
 6. [`WP-006-Windows-Collector-Production-Validation.md`](WP-006-Windows-Collector-Production-Validation.md)
    - WP-006.2A deployment tooling implemented; live deployment and validation
      not yet executed
+7. WP-008.4 through WP-008.8 — Approved; integration pending WP-007.Z
+8. [`WP-008.9`](../../workpackages/WP-008.9.md) — Approved;
+   Repository Readiness Review v1.0 remediation
 
 ## Revision history
 
 | Version | Date | Description |
 |---|---|---|
+| 1.16.0 | 2026-07-30 | Reconciled WP-001 completion and indexed approved WP-008 remediation state |
 | 1.15.0 | 2026-07-27 | Implemented WP-006.2A deployment package; live deployment pending |
 | 1.14.0 | 2026-07-27 | Prepared WP-006.2 controlled execution package |
 | 1.13.0 | 2026-07-27 | Approved WP-006.1 and opened controlled execution planning |

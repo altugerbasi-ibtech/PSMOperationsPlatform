@@ -910,6 +910,14 @@ Every value is mandatory and must come from the approved execution manifest.
 
 ### Operations Database schema validation
 
+The validator first compares repository migrations with
+`tools/deployment/PSMOperationsDatabaseSchemaExpectation.json`. The manifest
+uses an exact ordered set through `20260729191745_WP0088ExecutionHistory` and
+covers every currently implemented schema and table, including Runtime state
+and the six Execution History tables. A stale, missing, duplicate, or
+unexpected migration blocks validation. This check does not add or apply a
+migration and does not expect monitoring-history or a new Audit subsystem.
+
 ```powershell
 .\tools\deployment\Test-PSMOperationsDatabaseSchema.ps1 `
   -OperationsDatabaseConnectionString $approvedSecureString `
