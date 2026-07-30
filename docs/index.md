@@ -1,6 +1,6 @@
 ---
 title: Documentation Index
-version: 1.7.0
+version: 1.8.0
 status: Approved
 owner: Architecture
 last_updated: 2026-07-26
@@ -37,6 +37,7 @@ Accepted architecture decisions are indexed in [adr/README.md](../adr/README.md)
 - [`../Release/Database/PermissionValidation.md`](../Release/Database/PermissionValidation.md)
 - [`../Release/Verification/VerificationGuide.md`](../Release/Verification/VerificationGuide.md)
 - [`../Release/ReleaseGuide.md`](../Release/ReleaseGuide.md)
+- [`../Release/Acceptance/RATGuide.md`](../Release/Acceptance/RATGuide.md)
 - [`collectors/WP-007.2-Computer-Operating-System-BIOS-Inventory.md`](collectors/WP-007.2-Computer-Operating-System-BIOS-Inventory.md)
 - [`collectors/WP-007.3-Processor-Memory-Inventory.md`](collectors/WP-007.3-Processor-Memory-Inventory.md)
 - [`collectors/WP-007.4-Physical-Disk-Volume-Inventory.md`](collectors/WP-007.4-Physical-Disk-Volume-Inventory.md)

@@ -107,7 +107,9 @@ ready for review as a parameterized, read-only effective-permission package.
 WP-009.5 Release Verification Package is implemented and ready for review with
 read-only WinRM, SPN, gMSA, network, and SQL verification scripts. WP-009.6
 Release Bundle Generator is implemented and ready for review as the
-single-command deployment-package entry point. None changes the current
+single-command deployment-package entry point. WP-009.7 Release Acceptance Test
+is implemented and ready for review with explicit production-readiness
+decisions in console, JSON, HTML, and Markdown output. None changes the current
 runtime or integration gate, and live execution remains deferred.
 
 The authoritative immutable source record for that gate is

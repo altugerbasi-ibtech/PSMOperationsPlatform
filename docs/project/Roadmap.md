@@ -1,6 +1,6 @@
 ---
 title: Product Roadmap
-version: 1.26.0
+version: 1.27.0
 status: Draft
 owner: Product
 last_updated: 2026-07-30
@@ -45,6 +45,7 @@ and validation have not yet been executed.
    - WP-009.4 — Database Permission Validation — Ready for Review
    - WP-009.5 — Release Verification Package — Ready for Review
    - WP-009.6 — Release Bundle Generator — Ready for Review
+   - WP-009.7 — Release Acceptance Test — Ready for Review
 
 WP-009 separates production-deployment, DBA-handoff,
 infrastructure-validation, and release-packaging deliverables from runtime
@@ -52,7 +53,8 @@ feature development. WP-009.1 implements release-generation infrastructure;
 WP-009.2 adds DBA documentation and read-only validation queries; WP-009.3
 adds standalone read-only schema validation; WP-009.4 adds read-only
 effective-permission validation; WP-009.5 adds read-only post-deployment
-infrastructure verification; WP-009.6 adds one-command bundle generation. All
+infrastructure verification; WP-009.6 adds one-command bundle generation; and
+WP-009.7 adds deterministic release-acceptance decisions and reports. All
 WP-009 children are ready for human review; live execution remains deferred.
 
 WP-005.S1 controlled lab validation is preparation-complete and awaits the
@@ -68,6 +70,7 @@ future Work Packages are not silently renumbered here.
 
 | Version | Date | Description |
 |---|---|---|
+| 1.27.0 | 2026-07-30 | Recorded WP-009.7 Release Acceptance Test ready for review |
 | 1.26.0 | 2026-07-30 | Recorded WP-009.6 Release Bundle Generator ready for review |
 | 1.25.0 | 2026-07-30 | Recorded WP-009.5 Release Verification Package ready for review |
 | 1.24.0 | 2026-07-30 | Recorded WP-009.4 Database Permission Validation ready for review |

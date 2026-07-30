@@ -1,6 +1,6 @@
 ---
 title: Work Packages
-version: 1.25.0
+version: 1.26.0
 status: Approved
 owner: Engineering
 last_updated: 2026-07-27
@@ -56,18 +56,23 @@ specification in both locations.
       Ready for Review
     - [`WP-009.6`](../../workpackages/WP-009.6.md) — Release Bundle Generator —
       Ready for Review
+    - [`WP-009.7`](../../workpackages/WP-009.7.md) — Release Acceptance Test —
+      Ready for Review
+      - [`Completion report`](WP-009.7-Completion-Report.md)
 
 WP-009.1 implements release-generation infrastructure and WP-009.2 adds DBA
 documentation plus read-only validation queries, and WP-009.3 adds standalone
 read-only schema validation, WP-009.4 adds read-only effective-permission
 validation, WP-009.5 adds read-only post-deployment infrastructure
-verification, and WP-009.6 adds one-command bundle generation. They authorize
+verification, WP-009.6 adds one-command bundle generation, and WP-009.7 adds
+release-acceptance reporting and production-readiness decisions. They authorize
 no runtime change, remediation, or live deployment.
 
 ## Revision history
 
 | Version | Date | Description |
 |---|---|---|
+| 1.26.0 | 2026-07-30 | Recorded WP-009.7 Release Acceptance Test ready for review |
 | 1.25.0 | 2026-07-30 | Recorded WP-009.6 Release Bundle Generator ready for review |
 | 1.24.0 | 2026-07-30 | Recorded WP-009.5 Release Verification Package ready for review |
 | 1.23.0 | 2026-07-30 | Recorded WP-009.4 Database Permission Validation ready for review |

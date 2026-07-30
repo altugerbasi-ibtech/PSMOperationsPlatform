@@ -17,6 +17,9 @@ function New-ReleaseBundleFixture {
         'Release\Verification\Verify-SQL.ps1',
         'Release\Verification\Verification.Common.ps1',
         'Release\Verification\VerificationGuide.md',
+        'Release\Acceptance\RAT.Common.ps1',
+        'Release\Acceptance\Invoke-ReleaseAcceptanceTest.ps1',
+        'Release\Acceptance\RATGuide.md',
         'src\PSMOperationsPlatform.WindowsCollector\PSMOperationsPlatform.WindowsCollector.csproj',
         'src\PSMOperationsPlatform.Web\PSMOperationsPlatform.Web.csproj',
         'Release\ReleaseGuide.md',
@@ -84,7 +87,7 @@ Describe 'WP-009.6 release bundle generator' {
         $result=Invoke-PSMOperationsReleaseBundleBuild '1.2.3' $fixture `
             (New-ReleaseBundleOperations $fixture)
         foreach($relative in @(
-            'Database','Verification','Collector','Portal','Documentation',
+            'Database','Verification','Acceptance','Collector','Portal','Documentation',
             'Manifest.json','Checksums.sha256','Version.txt',
             'Documentation\DeploymentSummary.md')){
             Test-Path -LiteralPath (Join-Path $fixture "Release\$relative")|Should Be $true
@@ -97,6 +100,7 @@ Describe 'WP-009.6 release bundle generator' {
         @($manifest.Artifacts).Count|Should BeGreaterThan 10
         @($manifest.Artifacts|Where-Object{$_.Path -eq 'Collector/PSMOperationsPlatform.WindowsCollector.dll'}).Count|Should Be 1
         @($manifest.Artifacts|Where-Object{$_.Path -eq 'Portal/PSMOperationsPlatform.Web.dll'}).Count|Should Be 1
+        @($manifest.Artifacts|Where-Object{$_.Path -eq 'Acceptance/Invoke-ReleaseAcceptanceTest.ps1'}).Count|Should Be 1
         $checksums=Get-Content -Raw (Join-Path $fixture 'Release\Checksums.sha256')
         $checksums|Should Match '\*Manifest\.json'
         $checksums|Should Match '\*Version\.txt'

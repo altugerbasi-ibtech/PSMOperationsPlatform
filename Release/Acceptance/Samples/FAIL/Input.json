@@ -1,0 +1,12 @@
+{
+  "ProductVersion": "1.0.0",
+  "GitCommit": "xxxxxxxxxxxxxxxx",
+  "ExecutionTime": "00:01:42",
+  "ReadOnlyValidation": true,
+  "Checks": [
+    { "Name": "Operating System", "Result": "PASS", "Diagnostics": "Read-only validation passed." },
+    { "Name": "Database Schema", "Result": "FAIL", "Diagnostics": "Required schema validation failed." },
+    { "Name": "Database Permissions", "Result": "PASS", "Diagnostics": "Read-only validation passed." },
+    { "Name": "Release Artifacts", "Result": "PASS", "Diagnostics": "Read-only validation passed." }
+  ]
+}

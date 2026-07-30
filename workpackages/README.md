@@ -1,6 +1,6 @@
 ---
 title: Work Package Specifications
-version: 1.7.0
+version: 1.8.0
 status: Approved and Active
 owner: Engineering
 last_updated: 2026-07-30
@@ -11,7 +11,7 @@ product: PSM Operations Platform
 # Work Package Specifications
 
 [`WP-009`](WP-009.md) establishes the Release Engineering & Deployment
-Infrastructure epic. WP-009.1 through WP-009.6 are implemented and ready for
+Infrastructure epic. WP-009.1 through WP-009.7 are implemented and ready for
 review:
 
 - [`WP-009.1`](WP-009.1.md) — Release SQL Package — Ready for Review
@@ -20,13 +20,15 @@ review:
 - [`WP-009.4`](WP-009.4.md) — Database Permission Validation — Ready for Review
 - [`WP-009.5`](WP-009.5.md) — Release Verification Package — Ready for Review
 - [`WP-009.6`](WP-009.6.md) — Release Bundle Generator — Ready for Review
+- [`WP-009.7`](WP-009.7.md) — Release Acceptance Test — Ready for Review
 
 WP-009 separates release engineering from runtime feature development.
 WP-009.1 adds release tooling, WP-009.2 adds DBA documentation and read-only
 queries, WP-009.3 adds standalone read-only schema validation, WP-009.4 adds
 read-only effective-permission validation, WP-009.5 adds read-only
 post-deployment verification scripts, and WP-009.6 adds one-command bundle
-generation. They authorize no runtime, feature, business-logic, migration,
+generation, and WP-009.7 adds deterministic RAT production-readiness
+decisions and reports. They authorize no runtime, feature, business-logic, migration,
 deployment, or production operation.
 
 [`WP-008.9`](WP-008.9.md) is the release-gate remediation specification for
@@ -152,6 +154,7 @@ it is ready for review.
 
 | Version | Date | Description |
 |---|---|---|
+| 1.8.0 | 2026-07-30 | Recorded WP-009.7 Release Acceptance Test ready for review |
 | 1.7.0 | 2026-07-30 | Recorded WP-009.6 Release Bundle Generator ready for review |
 | 1.6.0 | 2026-07-30 | Recorded WP-009.5 Release Verification Package ready for review |
 | 1.5.0 | 2026-07-30 | Recorded WP-009.4 Database Permission Validation ready for review |

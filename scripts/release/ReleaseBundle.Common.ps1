@@ -59,6 +59,9 @@ function Invoke-PSMOperationsReleaseBundleBuild {
         'Release\Verification\Verify-SQL.ps1',
         'Release\Verification\Verification.Common.ps1',
         'Release\Verification\VerificationGuide.md',
+        'Release\Acceptance\RAT.Common.ps1',
+        'Release\Acceptance\Invoke-ReleaseAcceptanceTest.ps1',
+        'Release\Acceptance\RATGuide.md',
         'src\PSMOperationsPlatform.WindowsCollector\PSMOperationsPlatform.WindowsCollector.csproj',
         'src\PSMOperationsPlatform.Web\PSMOperationsPlatform.Web.csproj',
         'Release\ReleaseGuide.md',
@@ -108,6 +111,7 @@ function Invoke-PSMOperationsReleaseBundleBuild {
         'Release\Database\SchemaValidation.md'='SchemaValidation.md'
         'Release\Database\PermissionValidation.md'='PermissionValidation.md'
         'Release\Verification\VerificationGuide.md'='VerificationGuide.md'
+        'Release\Acceptance\RATGuide.md'='RATGuide.md'
         'Release\ReleaseGuide.md'='ReleaseGuide.md'
     }
     foreach($entry in $documentationMap.GetEnumerator()){
@@ -165,6 +169,9 @@ then execute the Verification Guide. Human release approval remains external.
         'Verification\Verify-gMSA.ps1',
         'Verification\Verify-Network.ps1',
         'Verification\Verify-SQL.ps1',
+        'Acceptance\RAT.Common.ps1',
+        'Acceptance\Invoke-ReleaseAcceptanceTest.ps1',
+        'Acceptance\RATGuide.md',
         'Documentation\DeploymentSummary.md',
         'Version.txt'
     )
