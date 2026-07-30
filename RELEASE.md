@@ -96,6 +96,20 @@ started. Live WinRM, SQL, IIS, inventory, monitoring, history, deployment,
 installer, rollback, and upgrade evidence may be collected only under that
 separately authorized integration package.
 
+WP-009 Release Engineering & Deployment Infrastructure is established for
+production-deployment, DBA-handoff, infrastructure-validation, and
+release-verification deliverables. WP-009.1 Release SQL Package is implemented
+and ready for review. WP-009.2 Database Deployment Guide is implemented and
+ready for review with documentation and read-only validation queries. WP-009.3
+Schema Validation is implemented and ready for review as a standalone
+read-only package. WP-009.4 Database Permission Validation is implemented and
+ready for review as a parameterized, read-only effective-permission package.
+WP-009.5 Release Verification Package is implemented and ready for review with
+read-only WinRM, SPN, gMSA, network, and SQL verification scripts. WP-009.6
+Release Bundle Generator is implemented and ready for review as the
+single-command deployment-package entry point. None changes the current
+runtime or integration gate, and live execution remains deferred.
+
 The authoritative immutable source record for that gate is
 [WP-007.Z Golden Baseline](docs/release/WP-007.Z-Golden-Baseline.md).
 

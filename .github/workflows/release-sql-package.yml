@@ -1,0 +1,63 @@
+name: Release SQL Package
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Semantic release version without the v prefix
+        required: true
+        type: string
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release-sql-package:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REF_NAME: ${{ github.ref_name }}
+          REQUESTED_VERSION: ${{ inputs.version }}
+        run: |
+          $version = if ($env:EVENT_NAME -eq 'workflow_dispatch') {
+            $env:REQUESTED_VERSION
+          } else {
+            $env:REF_NAME.TrimStart('v')
+          }
+          if ($version -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$') {
+            throw 'Release version is invalid.'
+          }
+          "value=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build deterministic SQL package
+        shell: pwsh
+        env:
+          PACKAGE_VERSION: ${{ steps.version.outputs.value }}
+        run: |
+          ./scripts/release/Publish-PSMOperationsSqlPackage.ps1 `
+            -Version $env:PACKAGE_VERSION
+
+      - name: Publish SQL package
+        uses: actions/upload-artifact@v4
+        with:
+          name: PSMOperations-Database-v${{ steps.version.outputs.value }}
+          path: |
+            Release/Database/PSMOperations-v${{ steps.version.outputs.value }}.sql
+            Release/Database/Checksums.sha256
+            Release/Database/Manifest.json
+          if-no-files-found: error
+          retention-days: 30

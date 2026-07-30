@@ -1,18 +1,45 @@
 ---
 title: Work Package Specifications
-version: 1.0.0
+version: 1.7.0
 status: Approved and Active
 owner: Engineering
-last_updated: 2026-07-29
+last_updated: 2026-07-30
 reviewers:
   - Architecture
 product: PSM Operations Platform
 ---
 # Work Package Specifications
 
+[`WP-009`](WP-009.md) establishes the Release Engineering & Deployment
+Infrastructure epic. WP-009.1 through WP-009.6 are implemented and ready for
+review:
+
+- [`WP-009.1`](WP-009.1.md) — Release SQL Package — Ready for Review
+- [`WP-009.2`](WP-009.2.md) — Database Deployment Guide — Ready for Review
+- [`WP-009.3`](WP-009.3.md) — Schema Validation — Ready for Review
+- [`WP-009.4`](WP-009.4.md) — Database Permission Validation — Ready for Review
+- [`WP-009.5`](WP-009.5.md) — Release Verification Package — Ready for Review
+- [`WP-009.6`](WP-009.6.md) — Release Bundle Generator — Ready for Review
+
+WP-009 separates release engineering from runtime feature development.
+WP-009.1 adds release tooling, WP-009.2 adds DBA documentation and read-only
+queries, WP-009.3 adds standalone read-only schema validation, WP-009.4 adds
+read-only effective-permission validation, WP-009.5 adds read-only
+post-deployment verification scripts, and WP-009.6 adds one-command bundle
+generation. They authorize no runtime, feature, business-logic, migration,
+deployment, or production operation.
+
 [`WP-008.9`](WP-008.9.md) is the release-gate remediation specification for
 findings B1 through B5 from Repository Readiness Review v1.0. It is Approved,
 adds no product capability, and defers live validation to WP-007.Z.
+
+[`WP-007.1`](WP-007.1.md) defines the deterministic, idempotent SQL Server
+release package generated from the existing EF Core migrations. It is ready
+for human review; DBA execution remains deferred to WP-007.Z.
+
+[`WP-007.1.V`](WP-007.1.V.md) defines the standalone read-only database schema
+validation package. It is ready for human review; real SQL validation remains
+deferred to WP-007.Z.
 
 WP-008.5, WP-008.6, WP-008.7, WP-008.7.Q, and WP-008.8 are Approved from the
 recorded human review. WP-008.4 is an approved historical package whose review
@@ -120,3 +147,16 @@ The package becomes `Ready for Review`, and the three review records are
 prepared. Human reviewers either request changes or mark the package
 `Approved`. A package is not approved merely because its completion line says
 it is ready for review.
+
+## Revision history
+
+| Version | Date | Description |
+|---|---|---|
+| 1.7.0 | 2026-07-30 | Recorded WP-009.6 Release Bundle Generator ready for review |
+| 1.6.0 | 2026-07-30 | Recorded WP-009.5 Release Verification Package ready for review |
+| 1.5.0 | 2026-07-30 | Recorded WP-009.4 Database Permission Validation ready for review |
+| 1.4.0 | 2026-07-30 | Recorded WP-009.3 Schema Validation ready for review |
+| 1.3.0 | 2026-07-30 | Recorded WP-009.2 Database Deployment Guide ready for review |
+| 1.2.0 | 2026-07-30 | Recorded WP-009.1 Release SQL Package ready for review |
+| 1.1.0 | 2026-07-30 | Added the Draft WP-009 release-engineering epic and child-package index |
+| 1.0.0 | 2026-07-29 | Established authoritative work-package specification governance |

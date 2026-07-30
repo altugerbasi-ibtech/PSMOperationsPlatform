@@ -1,6 +1,6 @@
 ---
 title: Documentation Index
-version: 1.0.0
+version: 1.7.0
 status: Approved
 owner: Architecture
 last_updated: 2026-07-26
@@ -23,12 +23,20 @@ Accepted architecture decisions are indexed in [adr/README.md](../adr/README.md)
 - [`engineering/PSM-Engineering-Standards.md`](engineering/PSM-Engineering-Standards.md)
 - [`engineering/Development-Process-Freeze-v1.0.md`](engineering/Development-Process-Freeze-v1.0.md)
 - [`../workpackages/README.md`](../workpackages/README.md)
+- [`../workpackages/WP-009.md`](../workpackages/WP-009.md)
 - [`release/WP-007.Z-Golden-Baseline.md`](release/WP-007.Z-Golden-Baseline.md)
 - [`../prompts/Prompt-Framework-v2.md`](../prompts/Prompt-Framework-v2.md)
 - [`adr/README.md`](adr/README.md)
 - [`tasks/README.md`](tasks/README.md)
 - [`handbook/Coding-Standards.md`](handbook/Coding-Standards.md)
 - [`deployment/WP-006.8-Safe-Collector-Deployment.md`](deployment/WP-006.8-Safe-Collector-Deployment.md)
+- [`deployment/WP-007.1-Release-SQL-Package.md`](deployment/WP-007.1-Release-SQL-Package.md)
+- [`deployment/WP-009.1-Release-SQL-Package.md`](deployment/WP-009.1-Release-SQL-Package.md)
+- [`../Release/Database/SchemaValidation.md`](../Release/Database/SchemaValidation.md)
+- [`../Release/Database/DeploymentGuide.md`](../Release/Database/DeploymentGuide.md)
+- [`../Release/Database/PermissionValidation.md`](../Release/Database/PermissionValidation.md)
+- [`../Release/Verification/VerificationGuide.md`](../Release/Verification/VerificationGuide.md)
+- [`../Release/ReleaseGuide.md`](../Release/ReleaseGuide.md)
 - [`collectors/WP-007.2-Computer-Operating-System-BIOS-Inventory.md`](collectors/WP-007.2-Computer-Operating-System-BIOS-Inventory.md)
 - [`collectors/WP-007.3-Processor-Memory-Inventory.md`](collectors/WP-007.3-Processor-Memory-Inventory.md)
 - [`collectors/WP-007.4-Physical-Disk-Volume-Inventory.md`](collectors/WP-007.4-Physical-Disk-Volume-Inventory.md)

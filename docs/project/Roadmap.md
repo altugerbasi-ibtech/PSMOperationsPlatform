@@ -1,9 +1,9 @@
 ---
 title: Product Roadmap
-version: 1.19.0
+version: 1.26.0
 status: Draft
 owner: Product
-last_updated: 2026-07-27
+last_updated: 2026-07-30
 reviewers:
   - Architecture
   - Engineering
@@ -19,6 +19,7 @@ product: PSM Operations Platform
 6. SQL Server discovery and health
 7. Controlled operations through Windows Action Executor
 8. Reporting, performance validation and operational hardening
+9. Release engineering and deployment infrastructure
 
 WP-006 Windows Collector Production Validation has its controlled execution
 package prepared. WP-006.2A deployment tooling is implemented; live deployment
@@ -36,6 +37,24 @@ and validation have not yet been executed.
 7. DNS Alias Discovery — Future separate Work Package; number not assigned
 8. Durable command queue behavior — Planned; number not assigned
 
+9. [WP-009 — Release Engineering & Deployment Infrastructure](../../workpackages/WP-009.md)
+   — Release-engineering delivery structure
+   - WP-009.1 — Release SQL Package — Ready for Review
+   - WP-009.2 — Database Deployment Guide — Ready for Review
+   - WP-009.3 — Schema Validation — Ready for Review
+   - WP-009.4 — Database Permission Validation — Ready for Review
+   - WP-009.5 — Release Verification Package — Ready for Review
+   - WP-009.6 — Release Bundle Generator — Ready for Review
+
+WP-009 separates production-deployment, DBA-handoff,
+infrastructure-validation, and release-packaging deliverables from runtime
+feature development. WP-009.1 implements release-generation infrastructure;
+WP-009.2 adds DBA documentation and read-only validation queries; WP-009.3
+adds standalone read-only schema validation; WP-009.4 adds read-only
+effective-permission validation; WP-009.5 adds read-only post-deployment
+infrastructure verification; WP-009.6 adds one-command bundle generation. All
+WP-009 children are ready for human review; live execution remains deferred.
+
 WP-005.S1 controlled lab validation is preparation-complete and awaits the
 explicit non-production execution gate. WP-005 remains completed.
 WP-005.S2 supplies the completed read-only environment validation tooling used
@@ -49,6 +68,13 @@ future Work Packages are not silently renumbered here.
 
 | Version | Date | Description |
 |---|---|---|
+| 1.26.0 | 2026-07-30 | Recorded WP-009.6 Release Bundle Generator ready for review |
+| 1.25.0 | 2026-07-30 | Recorded WP-009.5 Release Verification Package ready for review |
+| 1.24.0 | 2026-07-30 | Recorded WP-009.4 Database Permission Validation ready for review |
+| 1.23.0 | 2026-07-30 | Recorded WP-009.3 Schema Validation ready for review |
+| 1.22.0 | 2026-07-30 | Recorded WP-009.2 Database Deployment Guide ready for review |
+| 1.21.0 | 2026-07-30 | Recorded WP-009.1 Release SQL Package ready for review |
+| 1.20.0 | 2026-07-30 | Added Draft WP-009 release-engineering epic and five planning packages |
 | 1.19.0 | 2026-07-27 | Implemented WP-006.2A deployment package; live deployment pending |
 | 1.18.0 | 2026-07-27 | Prepared WP-006.2 controlled execution package |
 | 1.17.0 | 2026-07-27 | Approved WP-006.1 for controlled execution |

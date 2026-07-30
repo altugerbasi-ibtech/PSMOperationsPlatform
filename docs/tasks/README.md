@@ -1,6 +1,6 @@
 ---
 title: Work Packages
-version: 1.16.0
+version: 1.25.0
 status: Approved
 owner: Engineering
 last_updated: 2026-07-27
@@ -37,11 +37,46 @@ specification in both locations.
 7. WP-008.4 through WP-008.8 — Approved; integration pending WP-007.Z
 8. [`WP-008.9`](../../workpackages/WP-008.9.md) — Approved;
    Repository Readiness Review v1.0 remediation
+9. [`WP-007.1`](../../workpackages/WP-007.1.md) — Ready for Review;
+   deterministic DBA-owned SQL release package
+10. [`WP-007.1.V`](../../workpackages/WP-007.1.V.md) — Ready for Review;
+    standalone read-only schema validation package
+
+11. [`WP-009`](../../workpackages/WP-009.md) — Release
+    Engineering & Deployment Infrastructure epic
+    - [`WP-009.1`](../../workpackages/WP-009.1.md) — Release SQL Package —
+      Ready for Review
+    - [`WP-009.2`](../../workpackages/WP-009.2.md) — Database Deployment Guide —
+      Ready for Review
+    - [`WP-009.3`](../../workpackages/WP-009.3.md) — Schema Validation —
+      Ready for Review
+    - [`WP-009.4`](../../workpackages/WP-009.4.md) — Database Permission Validation —
+      Ready for Review
+    - [`WP-009.5`](../../workpackages/WP-009.5.md) — Release Verification Package —
+      Ready for Review
+    - [`WP-009.6`](../../workpackages/WP-009.6.md) — Release Bundle Generator —
+      Ready for Review
+
+WP-009.1 implements release-generation infrastructure and WP-009.2 adds DBA
+documentation plus read-only validation queries, and WP-009.3 adds standalone
+read-only schema validation, WP-009.4 adds read-only effective-permission
+validation, WP-009.5 adds read-only post-deployment infrastructure
+verification, and WP-009.6 adds one-command bundle generation. They authorize
+no runtime change, remediation, or live deployment.
 
 ## Revision history
 
 | Version | Date | Description |
 |---|---|---|
+| 1.25.0 | 2026-07-30 | Recorded WP-009.6 Release Bundle Generator ready for review |
+| 1.24.0 | 2026-07-30 | Recorded WP-009.5 Release Verification Package ready for review |
+| 1.23.0 | 2026-07-30 | Recorded WP-009.4 Database Permission Validation ready for review |
+| 1.22.0 | 2026-07-30 | Recorded WP-009.3 Schema Validation ready for review |
+| 1.21.0 | 2026-07-30 | Recorded WP-009.2 Database Deployment Guide ready for review |
+| 1.20.0 | 2026-07-30 | Recorded WP-009.1 Release SQL Package ready for review |
+| 1.19.0 | 2026-07-30 | Indexed the Draft WP-009 release-engineering epic and five children |
+| 1.18.0 | 2026-07-30 | Added WP-007.1.V schema validation package |
+| 1.17.0 | 2026-07-30 | Added WP-007.1 release SQL package review records |
 | 1.16.0 | 2026-07-30 | Reconciled WP-001 completion and indexed approved WP-008 remediation state |
 | 1.15.0 | 2026-07-27 | Implemented WP-006.2A deployment package; live deployment pending |
 | 1.14.0 | 2026-07-27 | Prepared WP-006.2 controlled execution package |
