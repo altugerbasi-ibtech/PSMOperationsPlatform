@@ -33,6 +33,32 @@
     "iis01.example.invalid",
     "iis02.example.invalid"
   ],
+  "SqlTargets": [
+    {
+      "Name": "managed-sql-01",
+      "Server": "managed-sql01.example.invalid",
+      "Instance": "MSSQLSERVER",
+      "Port": 1433,
+      "ExpectedRole": "ManagedSqlTarget",
+      "Encrypt": true,
+      "TrustServerCertificate": false,
+      "DatabasesToValidate": ["ExampleApplication"],
+      "RequiredPermissionsProfile": "SqlCollectorMetadataV1",
+      "ValidationEnabled": true
+    },
+    {
+      "Name": "operations-database",
+      "Server": "sql.example.invalid",
+      "Instance": "MSSQLSERVER",
+      "Port": 1433,
+      "ExpectedRole": "OperationsDatabase",
+      "Encrypt": true,
+      "TrustServerCertificate": false,
+      "DatabasesToValidate": ["PSMOperationsPlatform"],
+      "RequiredPermissionsProfile": "OperationsDatabaseValidationV1",
+      "ValidationEnabled": true
+    }
+  ],
   "Security": {
     "WindowsAuthentication": true,
     "KerberosOnly": true,

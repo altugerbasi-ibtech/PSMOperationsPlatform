@@ -17,6 +17,14 @@ function ConvertTo-OperationalMarkdown {
         $lines.Add("| $name | $($Report.$name) |")
     }
     $lines.Add('')
+    $lines.Add('## Target Summary')
+    $lines.Add('')
+    $lines.Add('| Target | Result |')
+    $lines.Add('|---|---|')
+    if ($Report.PSObject.Properties['Targets']) {
+        foreach ($target in $Report.Targets) { $lines.Add("| $($target.Target) | $($target.Status) |") }
+    }
+    $lines.Add('')
     $lines.Add('## Category Summary')
     $lines.Add('')
     $lines.Add('| Category | Result |')
@@ -67,6 +75,12 @@ function New-OperationalReport {
             Status=Get-OperationalOverallStatus @($_.Group)
         }
     })
+    $targets = @($ordered | Group-Object Target | Sort-Object Name | ForEach-Object {
+        [pscustomobject][ordered]@{
+            Target=$_.Name
+            Status=Get-OperationalOverallStatus @($_.Group)
+        }
+    })
     [pscustomobject][ordered]@{
         ReportTitle=$ReportTitle
         ReportBaseName=$ReportBaseName
@@ -78,6 +92,7 @@ function New-OperationalReport {
         CurrentIdentity=[Security.Principal.WindowsIdentity]::GetCurrent().Name
         ConfigurationHash=$ConfigurationHash
         DurationMilliseconds=[math]::Max(0,[long]([datetime]::UtcNow-$StartedAt).TotalMilliseconds)
+        Targets=$targets
         Categories=$categories
         OverallResult=$overall
         ExitCode=Get-OperationalExitCode $overall

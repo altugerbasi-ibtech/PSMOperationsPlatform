@@ -32,6 +32,20 @@
   "IisTargets": [
     ""
   ],
+  "SqlTargets": [
+    {
+      "Name": "",
+      "Server": "",
+      "Instance": "MSSQLSERVER",
+      "Port": 1433,
+      "ExpectedRole": "ManagedSqlTarget",
+      "Encrypt": true,
+      "TrustServerCertificate": false,
+      "DatabasesToValidate": [],
+      "RequiredPermissionsProfile": "SqlCollectorMetadataV1",
+      "ValidationEnabled": true
+    }
+  ],
   "Security": {
     "WindowsAuthentication": true,
     "KerberosOnly": true,

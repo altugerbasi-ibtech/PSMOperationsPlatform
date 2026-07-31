@@ -10,6 +10,11 @@ product: PSM Operations Platform
 ---
 # Work Package Specifications
 
+[`WP-007.Z.5`](WP-007.Z.5.md) extends the WP-007.Z.3 operational validation
+framework with current-identity, read-only SQL target validation. Its
+repository implementation is ready for human review; live SQL validation
+remains a separate WP-007.Z integration action.
+
 [`WP-007.Z.4`](WP-007.Z.4.md) extends the WP-007.Z.3 operational validation
 framework with read-only IIS target validation. Its repository implementation
 is ready for human review; live IIS validation remains a separate WP-007.Z

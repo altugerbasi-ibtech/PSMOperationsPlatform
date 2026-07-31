@@ -1,6 +1,6 @@
 ---
 title: Deployment Configuration
-version: 1.1.0
+version: 1.2.0
 status: Implemented - Review Pending
 owner: Release Engineering
 last_updated: 2026-07-31
@@ -58,6 +58,16 @@ Validation reads the file only and never contacts an environment.
 | `SqlCollector.Server` | Dedicated SQL Collector installation server |
 | `SqlCollector.ServiceAccount` | Domain-qualified SQL Collector gMSA ending `$` |
 | `IisTargets` | Non-empty array of unique IIS target DNS/server names; `iis01.example.invalid` |
+| `SqlTargets` | Non-empty array of explicitly named, static-port SQL validation targets |
+| `SqlTargets[].Name` | Unique safe selector used by `-TargetName` |
+| `SqlTargets[].Server`, `.Instance`, `.Port` | Explicit SQL endpoint; no discovery or connection syntax |
+| `SqlTargets[].ExpectedRole` | `ManagedSqlTarget` or `OperationsDatabase` |
+| `SqlTargets[].ExpectedVersion`, `.ExpectedEdition` | Optional approved non-secret expectations |
+| `SqlTargets[].Encrypt` | Must be `true` |
+| `SqlTargets[].TrustServerCertificate` | Must be `false` |
+| `SqlTargets[].DatabasesToValidate` | Unique safe database names; may be empty for server-only checks |
+| `SqlTargets[].RequiredPermissionsProfile` | `SqlCollectorMetadataV1` or `OperationsDatabaseValidationV1` |
+| `SqlTargets[].ValidationEnabled` | Boolean contact gate |
 | `Security.WindowsAuthentication` | Boolean; must be `true` |
 | `Security.KerberosOnly` | Boolean controlling whether NTLM fallback is rejected |
 | `Security.WinRMPort` | Integer 1-65535; normally `5985` or `5986` |
@@ -86,6 +96,8 @@ secrets are prohibited.
 - WP-007.Z.2 and later database deployment evidence use the same approved file.
 - WP-007.Z.4 obtains every IIS target from `IisTargets` and applies the global
   Kerberos-only WinRM policy in `Security`.
+- WP-007.Z.5 obtains every SQL endpoint from `SqlTargets`, uses Windows
+  Integrated Security, and rejects secret-bearing or SQL-authentication fields.
 - Future Windows Collector, SQL Collector, and Portal installation tooling
   must consume this contract rather than introduce parallel environment files.
 

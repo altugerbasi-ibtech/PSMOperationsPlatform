@@ -68,7 +68,7 @@ try {
     exit 1
 }
 
-$sectionNames = @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','Security','Validation')
+$sectionNames = @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','Security','Validation')
 Test-AllowedProperties $configuration '$' $sectionNames
 foreach ($sectionName in @('Deployment','SqlServer','Collector','Portal','SqlCollector','Security','Validation')) {
     [void](Test-RequiredObject $configuration $sectionName)
@@ -133,6 +133,42 @@ if ($null -eq $configuration.PSObject.Properties['IisTargets'] -or
             Add-Diagnostic "Duplicate IIS target is not allowed: $target."
         } else {
             $normalizedIisTargets[$key] = $true
+        }
+    }
+}
+
+if ($null -eq $configuration.PSObject.Properties['SqlTargets'] -or
+    $configuration.SqlTargets -isnot [array] -or $configuration.SqlTargets.Count -eq 0) {
+    Add-Diagnostic 'Schema violation: SqlTargets must be a non-empty array.'
+} else {
+    $sqlTargetNames=@{};$sqlTargetEndpoints=@{}
+    $allowedSqlTargetProperties=@('Name','Server','Instance','Port','ExpectedRole','ExpectedVersion',
+        'ExpectedEdition','Encrypt','TrustServerCertificate','DatabasesToValidate',
+        'RequiredPermissionsProfile','ValidationEnabled')
+    for($index=0;$index -lt $configuration.SqlTargets.Count;$index++){
+        $target=$configuration.SqlTargets[$index];$path="SqlTargets[$index]"
+        if($target -isnot [pscustomobject]){Add-Diagnostic "Schema violation: $path must be an object.";continue}
+        Test-AllowedProperties $target $path $allowedSqlTargetProperties
+        Test-RequiredString $target $path 'Name' '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+        Test-RequiredString $target $path 'Server' '^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$'
+        Test-RequiredString $target $path 'Instance' '^[A-Za-z0-9_.$-]+$'
+        foreach($name in @('ExpectedRole','RequiredPermissionsProfile')){Test-RequiredString $target $path $name}
+        Test-Port $target.Port "$path.Port"
+        foreach($name in @('Encrypt','TrustServerCertificate','ValidationEnabled')){Test-Boolean $target $path $name}
+        if($target.Encrypt -is [bool] -and -not $target.Encrypt){Add-Diagnostic "Schema violation: $path.Encrypt must be true."}
+        if($target.TrustServerCertificate -is [bool] -and $target.TrustServerCertificate){Add-Diagnostic "Schema violation: $path.TrustServerCertificate must be false."}
+        if($target.ExpectedRole -notin @('ManagedSqlTarget','OperationsDatabase')){Add-Diagnostic "Schema violation: $path.ExpectedRole is not allowed."}
+        if($target.RequiredPermissionsProfile -notin @('SqlCollectorMetadataV1','OperationsDatabaseValidationV1')){Add-Diagnostic "Schema violation: $path.RequiredPermissionsProfile is not allowed."}
+        if($null -eq $target.PSObject.Properties['DatabasesToValidate'] -or $target.DatabasesToValidate -isnot [array]){Add-Diagnostic "Schema violation: $path.DatabasesToValidate must be an array."}
+        else{$databaseKeys=@{};foreach($database in $target.DatabasesToValidate){if($database -isnot [string] -or $database -notmatch '^[A-Za-z0-9_.-]+$'){Add-Diagnostic "Schema violation: $path.DatabasesToValidate contains an invalid name."}elseif($databaseKeys.ContainsKey($database.ToUpperInvariant())){Add-Diagnostic "Duplicate database is not allowed in $path."}else{$databaseKeys[$database.ToUpperInvariant()]=$true}}}
+        if($target.PSObject.Properties['ExpectedVersion'] -and ($target.ExpectedVersion -isnot [string] -or $target.ExpectedVersion -notmatch '^[0-9]+(?:\.[0-9]+){0,3}$')){Add-Diagnostic "Schema violation: $path.ExpectedVersion is invalid."}
+        if($target.PSObject.Properties['ExpectedEdition'] -and ($target.ExpectedEdition -isnot [string] -or [string]::IsNullOrWhiteSpace($target.ExpectedEdition))){Add-Diagnostic "Schema violation: $path.ExpectedEdition is invalid."}
+        if($target.Name -is [string]){$key=$target.Name.ToUpperInvariant();if($sqlTargetNames.ContainsKey($key)){Add-Diagnostic "Duplicate SQL target name is not allowed: $($target.Name)."}else{$sqlTargetNames[$key]=$true}}
+        if($target.Server -is [string] -and $target.Instance -is [string] -and $target.Port -is [int]){$key="$($target.Server)|$($target.Instance)|$($target.Port)".ToUpperInvariant();if($sqlTargetEndpoints.ContainsKey($key)){Add-Diagnostic "Duplicate SQL target endpoint is not allowed: $path."}else{$sqlTargetEndpoints[$key]=$true}}
+        if($target.ExpectedRole -eq 'ManagedSqlTarget' -and $target.RequiredPermissionsProfile -ne 'SqlCollectorMetadataV1'){Add-Diagnostic "Schema violation: $path managed target requires SqlCollectorMetadataV1."}
+        if($target.ExpectedRole -eq 'OperationsDatabase'){
+            if($target.RequiredPermissionsProfile -ne 'OperationsDatabaseValidationV1'){Add-Diagnostic "Schema violation: $path Operations database requires OperationsDatabaseValidationV1."}
+            if($target.Server -ne $configuration.SqlServer.Server -or $target.Instance -ne $configuration.SqlServer.Instance -or $target.Port -ne $configuration.SqlServer.Port -or @($target.DatabasesToValidate).Count -ne 1 -or $target.DatabasesToValidate[0] -ne $configuration.SqlServer.Database){Add-Diagnostic "Schema violation: $path must align with the SqlServer Operations database endpoint."}
         }
     }
 }

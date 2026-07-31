@@ -16,6 +16,8 @@ artifacts/validation/*
 !artifacts/validation/WP-007.Z.3/**
 !artifacts/validation/WP-007.Z.4/
 !artifacts/validation/WP-007.Z.4/**
+!artifacts/validation/WP-007.Z.5/
+!artifacts/validation/WP-007.Z.5/**
 .vscode/
 .idea/
 Thumbs.db
@@ -33,4 +35,6 @@ logs/
 !artifacts/validation/WP-007.Z.3/Logs/README.md
 !artifacts/validation/WP-007.Z.4/Logs/
 !artifacts/validation/WP-007.Z.4/Logs/README.md
+!artifacts/validation/WP-007.Z.5/Logs/
+!artifacts/validation/WP-007.Z.5/Logs/README.md
 *.log
