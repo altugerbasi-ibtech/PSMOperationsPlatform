@@ -9,6 +9,15 @@ function ConvertTo-OperationalMarkdown {
     $lines.Add("# $title")
     $lines.Add('')
     $lines.Add("**Overall result: $($Report.OverallResult)**")
+    if ($Report.PSObject.Properties['ReadinessDecision']) {
+        $lines.Add('')
+        $lines.Add("**Readiness decision: $($Report.ReadinessDecision)**")
+        $lines.Add('')
+        $lines.Add('## Blocked Execution Reasons')
+        $lines.Add('')
+        if (@($Report.BlockedExecutionReasons).Count -eq 0) { $lines.Add('None') }
+        else { foreach ($reason in $Report.BlockedExecutionReasons) { $lines.Add("- $reason") } }
+    }
     $lines.Add('')
     $lines.Add('| Field | Value |')
     $lines.Add('|---|---|')
@@ -117,6 +126,7 @@ function Write-OperationalReports {
         "Target=$($Report.TargetMachine)"
         "OverallResult=$($Report.OverallResult)"
         "CheckCount=$(@($Report.Results).Count)"
+        $(if ($Report.PSObject.Properties['ReadinessDecision']) { "ReadinessDecision=$($Report.ReadinessDecision)" })
     ) | Set-Content -LiteralPath $logPath -Encoding UTF8
     [pscustomobject]@{Json=$jsonPath;Markdown=$markdownPath;Log=$logPath}
 }

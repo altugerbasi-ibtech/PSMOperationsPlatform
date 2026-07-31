@@ -10,6 +10,11 @@ product: PSM Operations Platform
 ---
 # Work Package Specifications
 
+[`WP-007.Z.6`](WP-007.Z.6.md) composes the approved Collector host, IIS, SQL,
+and Operations database validation evidence into a deterministic end-to-end
+Collector readiness decision. Its repository implementation is ready for
+human review; live end-to-end validation remains separate and was not run.
+
 [`WP-007.Z.5`](WP-007.Z.5.md) extends the WP-007.Z.3 operational validation
 framework with current-identity, read-only SQL target validation. Its
 repository implementation is ready for human review; live SQL validation
