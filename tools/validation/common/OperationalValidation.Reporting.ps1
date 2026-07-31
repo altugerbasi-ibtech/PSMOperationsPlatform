@@ -5,7 +5,8 @@ function ConvertTo-OperationalMarkdown {
     [CmdletBinding()]
     param([Parameter(Mandatory)][object]$Report)
     $lines = New-Object Collections.Generic.List[string]
-    $lines.Add('# Collector Host Validation Report')
+    $title = if ($Report.PSObject.Properties['ReportTitle']) { $Report.ReportTitle } else { 'Collector Host Validation Report' }
+    $lines.Add("# $title")
     $lines.Add('')
     $lines.Add("**Overall result: $($Report.OverallResult)**")
     $lines.Add('')
@@ -53,7 +54,9 @@ function New-OperationalReport {
         [Parameter(Mandatory)][string]$SourceMachine,
         [Parameter(Mandatory)][string]$TargetMachine,
         [Parameter(Mandatory)][datetime]$StartedAt,
-        [Parameter(Mandatory)][object[]]$Results
+        [Parameter(Mandatory)][object[]]$Results,
+        [string]$ReportTitle = 'Collector Host Validation Report',
+        [string]$ReportBaseName = 'CollectorHostValidation'
     )
     $ordered = @($Results | Sort-Object Category,CheckId)
     Assert-OperationalResults $ordered
@@ -65,6 +68,8 @@ function New-OperationalReport {
         }
     })
     [pscustomobject][ordered]@{
+        ReportTitle=$ReportTitle
+        ReportBaseName=$ReportBaseName
         Timestamp=[datetime]::UtcNow.ToString('o')
         ProductVersion=$Configuration.Deployment.ProductVersion
         GitCommit=$Configuration.Deployment.GitCommit
@@ -86,9 +91,10 @@ function Write-OperationalReports {
     if (-not (Test-Path -LiteralPath $OutputPath -PathType Container)) {
         [void][IO.Directory]::CreateDirectory($OutputPath)
     }
-    $jsonPath = Join-Path $OutputPath 'CollectorHostValidationReport.json'
-    $markdownPath = Join-Path $OutputPath 'CollectorHostValidationReport.md'
-    $logPath = Join-Path $OutputPath 'CollectorHostValidation.log'
+    $baseName = if ($Report.PSObject.Properties['ReportBaseName']) { $Report.ReportBaseName } else { 'CollectorHostValidation' }
+    $jsonPath = Join-Path $OutputPath ($baseName + 'Report.json')
+    $markdownPath = Join-Path $OutputPath ($baseName + 'Report.md')
+    $logPath = Join-Path $OutputPath ($baseName + '.log')
     $Report | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $jsonPath -Encoding UTF8
     ConvertTo-OperationalMarkdown $Report | Set-Content -LiteralPath $markdownPath -Encoding UTF8
     @(

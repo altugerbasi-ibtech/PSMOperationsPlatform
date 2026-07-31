@@ -10,6 +10,11 @@ product: PSM Operations Platform
 ---
 # Work Package Specifications
 
+[`WP-007.Z.4`](WP-007.Z.4.md) extends the WP-007.Z.3 operational validation
+framework with read-only IIS target validation. Its repository implementation
+is ready for human review; live IIS validation remains a separate WP-007.Z
+integration action.
+
 [`WP-009`](WP-009.md) establishes the Release Engineering & Deployment
 Infrastructure epic. WP-009.1 through WP-009.7 are implemented and ready for
 review:

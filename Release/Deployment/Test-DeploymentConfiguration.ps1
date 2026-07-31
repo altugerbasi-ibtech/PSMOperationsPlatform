@@ -68,9 +68,9 @@ try {
     exit 1
 }
 
-$sectionNames = @('Deployment','SqlServer','Collector','Portal','SqlCollector','Security','Validation')
+$sectionNames = @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','Security','Validation')
 Test-AllowedProperties $configuration '$' $sectionNames
-foreach ($sectionName in $sectionNames) {
+foreach ($sectionName in @('Deployment','SqlServer','Collector','Portal','SqlCollector','Security','Validation')) {
     [void](Test-RequiredObject $configuration $sectionName)
 }
 
@@ -115,6 +115,28 @@ Test-RequiredString $configuration.Portal 'Portal' 'ServiceAccount' '^[^\s]+\\[^
 Test-RequiredString $configuration.SqlCollector 'SqlCollector' 'Server'
 Test-RequiredString $configuration.SqlCollector 'SqlCollector' 'ServiceAccount' '^[^\s]+\\[^\s]+\$$'
 
+if ($null -eq $configuration.PSObject.Properties['IisTargets'] -or
+    $configuration.IisTargets -isnot [array] -or $configuration.IisTargets.Count -eq 0) {
+    Add-Diagnostic 'Schema violation: IisTargets must be a non-empty array.'
+} else {
+    $normalizedIisTargets = @{}
+    for ($index = 0; $index -lt $configuration.IisTargets.Count; $index++) {
+        $target = $configuration.IisTargets[$index]
+        if ($target -isnot [string] -or [string]::IsNullOrWhiteSpace($target) -or
+            $target.Length -gt 255 -or
+            $target -notmatch '^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$') {
+            Add-Diagnostic "Schema violation: IisTargets[$index] must be a valid DNS/server name."
+            continue
+        }
+        $key = $target.ToUpperInvariant()
+        if ($normalizedIisTargets.ContainsKey($key)) {
+            Add-Diagnostic "Duplicate IIS target is not allowed: $target."
+        } else {
+            $normalizedIisTargets[$key] = $true
+        }
+    }
+}
+
 Test-AllowedProperties $configuration.Security 'Security' @(
     'WindowsAuthentication','KerberosOnly','WinRMPort','IncludePortInSPN','UseTLS')
 foreach ($name in @('WindowsAuthentication','KerberosOnly','IncludePortInSPN','UseTLS')) {
@@ -123,6 +145,14 @@ foreach ($name in @('WindowsAuthentication','KerberosOnly','IncludePortInSPN','U
 if ($configuration.Security.WindowsAuthentication -is [bool] -and
     -not $configuration.Security.WindowsAuthentication) {
     Add-Diagnostic 'Schema violation: Security.WindowsAuthentication must be true.'
+}
+if ($configuration.Security.KerberosOnly -is [bool] -and
+    -not $configuration.Security.KerberosOnly) {
+    Add-Diagnostic 'Schema violation: Security.KerberosOnly must be true for IIS target validation.'
+}
+if ($configuration.Security.IncludePortInSPN -is [bool] -and
+    -not $configuration.Security.IncludePortInSPN) {
+    Add-Diagnostic 'Schema violation: Security.IncludePortInSPN must be true for IIS target validation.'
 }
 Test-Port $configuration.Security.WinRMPort 'Security.WinRMPort'
 

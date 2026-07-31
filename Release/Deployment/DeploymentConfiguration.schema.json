@@ -5,7 +5,7 @@
   "description": "Environment deployment inputs shared by release engineering, deployment, validation, and future installers. It contains no credentials or secrets.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["Deployment", "SqlServer", "Collector", "Portal", "SqlCollector", "Security", "Validation"],
+  "required": ["Deployment", "SqlServer", "Collector", "Portal", "SqlCollector", "IisTargets", "Security", "Validation"],
   "properties": {
     "Deployment": {
       "type": "object",
@@ -60,6 +60,18 @@
       "properties": {
         "Server": { "type": "string", "minLength": 1, "maxLength": 255, "description": "SQL Collector installation server." },
         "ServiceAccount": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\s]+\\\\[^\\s]+\\$$", "description": "Domain-qualified SQL Collector gMSA name, distinct from the Windows Collector identity." }
+      }
+    },
+    "IisTargets": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Approved IIS target DNS names used by read-only validation and future Collector inventory.",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 255,
+        "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9.-]*[A-Za-z0-9])?$"
       }
     },
     "Security": {

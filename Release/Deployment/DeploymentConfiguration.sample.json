@@ -29,6 +29,10 @@
     "Server": "sqlcollector.example.invalid",
     "ServiceAccount": "EXAMPLE\\gmsa-sqlcollector$"
   },
+  "IisTargets": [
+    "iis01.example.invalid",
+    "iis02.example.invalid"
+  ],
   "Security": {
     "WindowsAuthentication": true,
     "KerberosOnly": true,

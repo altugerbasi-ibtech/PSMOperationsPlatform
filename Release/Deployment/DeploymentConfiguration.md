@@ -1,6 +1,6 @@
 ---
 title: Deployment Configuration
-version: 1.0.0
+version: 1.1.0
 status: Implemented - Review Pending
 owner: Release Engineering
 last_updated: 2026-07-31
@@ -57,6 +57,7 @@ Validation reads the file only and never contacts an environment.
 | `Portal.ServiceAccount` | Domain-qualified Portal gMSA ending `$` |
 | `SqlCollector.Server` | Dedicated SQL Collector installation server |
 | `SqlCollector.ServiceAccount` | Domain-qualified SQL Collector gMSA ending `$` |
+| `IisTargets` | Non-empty array of unique IIS target DNS/server names; `iis01.example.invalid` |
 | `Security.WindowsAuthentication` | Boolean; must be `true` |
 | `Security.KerberosOnly` | Boolean controlling whether NTLM fallback is rejected |
 | `Security.WinRMPort` | Integer 1-65535; normally `5985` or `5986` |
@@ -66,7 +67,9 @@ Validation reads the file only and never contacts an environment.
 | `Validation.RunPermissionValidation` | Boolean gate for WP-009.4 |
 | `Validation.RunReleaseAcceptanceTest` | Boolean gate for WP-009.7 |
 
-Every section and property is required. Unknown properties are prohibited by
+Every section and property is required. `IisTargets` is the only source of
+target names for WP-007.Z.4; comparison and duplicate detection are
+case-insensitive. Unknown properties are prohibited by
 the JSON Schema. Server roles and runtime service accounts must be distinct to
 preserve security boundaries. The file stores references and policy choices
 only: passwords, connection strings, certificates, private keys, and other
@@ -81,6 +84,8 @@ secrets are prohibited.
 - WP-009.5 obtains SQL, WinRM, SPN, gMSA, network, and security inputs.
 - WP-009.7 obtains release identity and validation gates.
 - WP-007.Z.2 and later database deployment evidence use the same approved file.
+- WP-007.Z.4 obtains every IIS target from `IisTargets` and applies the global
+  Kerberos-only WinRM policy in `Security`.
 - Future Windows Collector, SQL Collector, and Portal installation tooling
   must consume this contract rather than introduce parallel environment files.
 

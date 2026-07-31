@@ -15,9 +15,9 @@ Describe 'WP-007.Z.2.A deployment configuration' {
     It 'defines every required section and rejects unknown properties' {
         $schema=Get-Content -Raw $schemaPath | ConvertFrom-Json
         $schema.additionalProperties|Should Be $false
-        foreach($name in @('Deployment','SqlServer','Collector','Portal','SqlCollector','Security','Validation')){
+        foreach($name in @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','Security','Validation')){
             ($schema.required -contains $name)|Should Be $true
-            $schema.properties.$name.additionalProperties|Should Be $false
+            if($name -ne 'IisTargets'){$schema.properties.$name.additionalProperties|Should Be $false}
         }
     }
 
@@ -31,6 +31,7 @@ Describe 'WP-007.Z.2.A deployment configuration' {
         ($schema.properties.SqlServer.properties.RecoveryModel.enum -contains 'BULK_LOGGED')|Should Be $true
         $schema.properties.Security.properties.UseTLS.type|Should Be 'boolean'
         $schema.properties.Validation.properties.RunReleaseAcceptanceTest.type|Should Be 'boolean'
+        $schema.properties.IisTargets.minItems|Should Be 1
     }
 
     It 'accepts the generic sample' {
@@ -52,6 +53,10 @@ Describe 'WP-007.Z.2.A deployment configuration' {
             @{ Mutate={param($c) $c.Portal.Server=$c.Collector.Server} },
             @{ Mutate={param($c) $c.SqlCollector.ServiceAccount=''} },
             @{ Mutate={param($c) $c.Deployment.ProductVersion='invalid'} },
+            @{ Mutate={param($c) $c.IisTargets=@()} },
+            @{ Mutate={param($c) $c.IisTargets=@('iis01.example.invalid','IIS01.EXAMPLE.INVALID')} },
+            @{ Mutate={param($c) $c.Security.KerberosOnly=$false} },
+            @{ Mutate={param($c) $c.Security.IncludePortInSPN=$false} },
             @{ Mutate={param($c) $c.Deployment|Add-Member UnknownValue 'not-allowed'} }
         )
         foreach($case in $cases){
