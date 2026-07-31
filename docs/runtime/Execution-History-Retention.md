@@ -1,5 +1,8 @@
 # Execution History Retention
 
+WP-007.Z.8 validates this policy and cleanup source/test evidence without
+invoking cleanup. The repository has no dry-run API; none is simulated.
+
 WP-007.Z.9 observes the existing 500 default and 5000 maximum batch bounds. It
 does not execute cleanup or establish production retention throughput.
 

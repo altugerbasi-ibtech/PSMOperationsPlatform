@@ -15,7 +15,7 @@ Describe 'WP-007.Z.2.A deployment configuration' {
     It 'defines every required section and rejects unknown properties' {
         $schema=Get-Content -Raw $schemaPath | ConvertFrom-Json
         $schema.additionalProperties|Should Be $false
-        foreach($name in @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','MonitoringValidation','PerformanceValidation','Security','Validation')){
+        foreach($name in @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','MonitoringValidation','PerformanceValidation','HistoryValidation','Security','Validation')){
             ($schema.required -contains $name)|Should Be $true
             if($name -notin @('IisTargets','SqlTargets')){$schema.properties.$name.additionalProperties|Should Be $false}
         }
@@ -38,6 +38,8 @@ Describe 'WP-007.Z.2.A deployment configuration' {
         $schema.properties.MonitoringValidation.properties.InstrumentationName.const|Should Be 'PSMOperationsPlatform.Execution'
         $schema.properties.PerformanceValidation.properties.SyntheticRunCount.maximum|Should Be 1000
         $schema.properties.PerformanceValidation.properties.MaximumParallelism.maximum|Should Be 4
+        $schema.properties.HistoryValidation.properties.ExpectedHistorySchemaVersion.const|Should Be 1
+        $schema.properties.HistoryValidation.properties.RetentionBatchSize.const|Should Be 500
     }
 
     It 'accepts the generic sample' {
@@ -77,6 +79,9 @@ Describe 'WP-007.Z.2.A deployment configuration' {
             @{ Mutate={param($c) $c.PerformanceValidation.ValidationProfile='Unlimited'} },
             @{ Mutate={param($c) $c.PerformanceValidation.SyntheticRunCount=1001} },
             @{ Mutate={param($c) $c.PerformanceValidation.LivePerformanceValidationEnabled=$true} },
+            @{ Mutate={param($c) $c.HistoryValidation.ExpectedHistorySchemaVersion=2} },
+            @{ Mutate={param($c) $c.HistoryValidation.RetentionBatchSize=5001} },
+            @{ Mutate={param($c) $c.HistoryValidation.RetentionDryRunEnabled=$true} },
             @{ Mutate={param($c) $c.Deployment|Add-Member UnknownValue 'not-allowed'} }
         )
         foreach($case in $cases){

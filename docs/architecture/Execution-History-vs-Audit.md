@@ -1,5 +1,8 @@
 # Execution History versus Audit
 
+WP-007.Z.8 validates this boundary while allowing the separate pre-existing
+`audit.AuditLog`; only History migration/schema/dependency leakage is a defect.
+
 WP-008.8 implements only the durable execution projection described in
 [Execution History](Execution-History.md). It adds no operator identity, audit
 event, audit service, or audit table.

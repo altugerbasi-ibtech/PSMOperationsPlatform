@@ -8,6 +8,11 @@ product: PSM Operations Platform
 ---
 # Deployment Configuration
 
+`HistoryValidation` is the read-only History/Retention validation gate. Version
+1 uses `ExecutionHistoryV1`, schema version 1, batch 500 and dry-run false. It
+duplicates no endpoint, credential or retention policy and selects the existing
+enabled Operations Database SQL target.
+
 `PerformanceValidation` defines only bounded repository-validation profiles:
 Smoke (5 targets, 10 runs, 5 steps, parallelism 1, warmup 1, measurements 3),
 Standard (20, 100, 10, 2, 2, 5), and Extended (100, 1000, 20, 4, 3, 7).

@@ -10,6 +10,11 @@ product: PSM Operations Platform
 ---
 # Work Package Specifications
 
+[`WP-007.Z.8`](WP-007.Z.8.md) validates Execution History persistence, query,
+projection and retention readiness through the standard operational validation
+toolkit. Repository implementation and human reviews are approved; live History
+and Retention validation remain separate and were not executed.
+
 [`WP-007.Z.7`](WP-007.Z.7.md) validates Portal and Execution Monitoring
 readiness through the standard operational validation toolkit. Its repository
 implementation and human reviews are approved; live Portal and Monitoring

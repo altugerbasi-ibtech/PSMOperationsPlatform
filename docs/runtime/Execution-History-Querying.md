@@ -1,5 +1,8 @@
 # Execution History Querying
 
+WP-007.Z.8 observes this query contract and paging authority without reading
+unbounded live history. Production query plans and locking remain live evidence.
+
 WP-007.Z.9 validates the existing bounded paging and ordering contracts through
 repository evidence only. Production query performance and plans require
 separately authorized live SQL evidence.

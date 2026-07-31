@@ -5,7 +5,7 @@
   "description": "Environment deployment inputs shared by release engineering, deployment, validation, and future installers. It contains no credentials or secrets.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["Deployment", "SqlServer", "Collector", "Portal", "SqlCollector", "IisTargets", "SqlTargets", "MonitoringValidation", "PerformanceValidation", "Security", "Validation"],
+  "required": ["Deployment", "SqlServer", "Collector", "Portal", "SqlCollector", "IisTargets", "SqlTargets", "MonitoringValidation", "PerformanceValidation", "HistoryValidation", "Security", "Validation"],
   "properties": {
     "Deployment": {
       "type": "object",
@@ -143,6 +143,21 @@
         "MeasurementIterations": { "type": "integer", "minimum": 1, "maximum": 10 },
         "LivePerformanceValidationEnabled": { "type": "boolean", "const": false },
         "QueryPlanValidationEnabled": { "type": "boolean", "const": false }
+      }
+    },
+    "HistoryValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["HistoryValidationEnabled", "ProjectionValidationEnabled", "QueryValidationEnabled", "RetentionValidationEnabled", "ExpectedHistorySchemaVersion", "RetentionPolicyProfile", "RetentionBatchSize", "RetentionDryRunEnabled"],
+      "properties": {
+        "HistoryValidationEnabled": { "type": "boolean" },
+        "ProjectionValidationEnabled": { "type": "boolean" },
+        "QueryValidationEnabled": { "type": "boolean" },
+        "RetentionValidationEnabled": { "type": "boolean" },
+        "ExpectedHistorySchemaVersion": { "type": "integer", "const": 1 },
+        "RetentionPolicyProfile": { "type": "string", "const": "ExecutionHistoryV1" },
+        "RetentionBatchSize": { "type": "integer", "minimum": 1, "maximum": 5000, "const": 500 },
+        "RetentionDryRunEnabled": { "type": "boolean", "const": false }
       }
     },
     "Security": {

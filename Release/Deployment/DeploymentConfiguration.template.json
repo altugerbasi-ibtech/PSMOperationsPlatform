@@ -80,6 +80,16 @@
     "LivePerformanceValidationEnabled": false,
     "QueryPlanValidationEnabled": false
   },
+  "HistoryValidation": {
+    "HistoryValidationEnabled": true,
+    "ProjectionValidationEnabled": true,
+    "QueryValidationEnabled": true,
+    "RetentionValidationEnabled": true,
+    "ExpectedHistorySchemaVersion": 1,
+    "RetentionPolicyProfile": "ExecutionHistoryV1",
+    "RetentionBatchSize": 500,
+    "RetentionDryRunEnabled": false
+  },
   "Security": {
     "WindowsAuthentication": true,
     "KerberosOnly": true,

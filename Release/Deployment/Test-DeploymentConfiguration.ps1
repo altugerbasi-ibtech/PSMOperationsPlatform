@@ -68,9 +68,9 @@ try {
     exit 1
 }
 
-$sectionNames = @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','MonitoringValidation','PerformanceValidation','Security','Validation')
+$sectionNames = @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','MonitoringValidation','PerformanceValidation','HistoryValidation','Security','Validation')
 Test-AllowedProperties $configuration '$' $sectionNames
-foreach ($sectionName in @('Deployment','SqlServer','Collector','Portal','SqlCollector','MonitoringValidation','PerformanceValidation','Security','Validation')) {
+foreach ($sectionName in @('Deployment','SqlServer','Collector','Portal','SqlCollector','MonitoringValidation','PerformanceValidation','HistoryValidation','Security','Validation')) {
     [void](Test-RequiredObject $configuration $sectionName)
 }
 
@@ -158,6 +158,14 @@ $profileValues=@{Smoke=@(5,10,5,1,1,3);Standard=@(20,100,10,2,2,5);Extended=@(10
 $numericNames=@('SyntheticTargetCount','SyntheticRunCount','SyntheticStepCount','MaximumParallelism','WarmupIterations','MeasurementIterations')
 if($configuration.PerformanceValidation.ValidationProfile -in $profileValues.Keys){$expected=$profileValues[$configuration.PerformanceValidation.ValidationProfile];for($i=0;$i -lt $numericNames.Count;$i++){if($configuration.PerformanceValidation.($numericNames[$i]) -isnot [int] -or $configuration.PerformanceValidation.($numericNames[$i]) -ne $expected[$i]){Add-Diagnostic "Schema violation: PerformanceValidation profile values must match the approved $($configuration.PerformanceValidation.ValidationProfile) profile."}}}
 if($configuration.PerformanceValidation.LivePerformanceValidationEnabled -or $configuration.PerformanceValidation.QueryPlanValidationEnabled){Add-Diagnostic 'Schema violation: live performance and query-plan validation require separate authorization and must be false.'}
+
+$historyProperties=@('HistoryValidationEnabled','ProjectionValidationEnabled','QueryValidationEnabled','RetentionValidationEnabled','ExpectedHistorySchemaVersion','RetentionPolicyProfile','RetentionBatchSize','RetentionDryRunEnabled')
+Test-AllowedProperties $configuration.HistoryValidation 'HistoryValidation' $historyProperties
+foreach($name in @('HistoryValidationEnabled','ProjectionValidationEnabled','QueryValidationEnabled','RetentionValidationEnabled','RetentionDryRunEnabled')){Test-Boolean $configuration.HistoryValidation 'HistoryValidation' $name}
+if($configuration.HistoryValidation.ExpectedHistorySchemaVersion -isnot [int] -or $configuration.HistoryValidation.ExpectedHistorySchemaVersion -ne 1){Add-Diagnostic 'Schema violation: HistoryValidation.ExpectedHistorySchemaVersion must be 1.'}
+Test-RequiredString $configuration.HistoryValidation 'HistoryValidation' 'RetentionPolicyProfile' '^ExecutionHistoryV1$'
+if($configuration.HistoryValidation.RetentionBatchSize -isnot [int] -or $configuration.HistoryValidation.RetentionBatchSize -ne 500){Add-Diagnostic 'Schema violation: HistoryValidation.RetentionBatchSize must match ExecutionHistoryV1 value 500.'}
+if($configuration.HistoryValidation.RetentionDryRunEnabled){Add-Diagnostic 'Schema violation: HistoryValidation.RetentionDryRunEnabled must be false because no dry-run contract exists.'}
 
 if ($null -eq $configuration.PSObject.Properties['SqlTargets'] -or
     $configuration.SqlTargets -isnot [array] -or $configuration.SqlTargets.Count -eq 0) {
