@@ -22,8 +22,20 @@
     "LogPath": ""
   },
   "Portal": {
+    "Name": "",
     "Server": "",
-    "ServiceAccount": ""
+    "ServiceAccount": "",
+    "ValidationEnabled": true,
+    "DeploymentExpected": false,
+    "HostingModel": "AspNetCoreIIS",
+    "Scheme": "https",
+    "Port": 443,
+    "BasePath": "/",
+    "HealthPath": "/health",
+    "AuthenticationMode": "Windows",
+    "ApplicationPath": "",
+    "ConfigurationPath": "",
+    "LogPath": ""
   },
   "SqlCollector": {
     "Server": "",
@@ -46,6 +58,16 @@
       "ValidationEnabled": true
     }
   ],
+  "MonitoringValidation": {
+    "InstrumentationName": "PSMOperationsPlatform.Execution",
+    "InstrumentationVersion": "1.0",
+    "HealthValidationEnabled": true,
+    "MetricsValidationEnabled": true,
+    "ActivityValidationEnabled": true,
+    "SnapshotValidationEnabled": true,
+    "ExporterExpected": false,
+    "BackendExpected": false
+  },
   "Security": {
     "WindowsAuthentication": true,
     "KerberosOnly": true,

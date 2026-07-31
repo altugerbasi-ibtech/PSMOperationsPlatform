@@ -15,7 +15,7 @@ Describe 'WP-007.Z.2.A deployment configuration' {
     It 'defines every required section and rejects unknown properties' {
         $schema=Get-Content -Raw $schemaPath | ConvertFrom-Json
         $schema.additionalProperties|Should Be $false
-        foreach($name in @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','Security','Validation')){
+        foreach($name in @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','MonitoringValidation','Security','Validation')){
             ($schema.required -contains $name)|Should Be $true
             if($name -notin @('IisTargets','SqlTargets')){$schema.properties.$name.additionalProperties|Should Be $false}
         }
@@ -33,6 +33,9 @@ Describe 'WP-007.Z.2.A deployment configuration' {
         $schema.properties.Validation.properties.RunReleaseAcceptanceTest.type|Should Be 'boolean'
         $schema.properties.IisTargets.minItems|Should Be 1
         $schema.properties.SqlTargets.minItems|Should Be 1
+        $schema.properties.Portal.properties.Port.minimum|Should Be 1
+        ($schema.properties.Portal.properties.Scheme.enum -contains 'https')|Should Be $true
+        $schema.properties.MonitoringValidation.properties.InstrumentationName.const|Should Be 'PSMOperationsPlatform.Execution'
     }
 
     It 'accepts the generic sample' {
@@ -64,6 +67,11 @@ Describe 'WP-007.Z.2.A deployment configuration' {
             @{ Mutate={param($c) $c.SqlTargets[1].Server=$c.SqlTargets[0].Server;$c.SqlTargets[1].Instance=$c.SqlTargets[0].Instance;$c.SqlTargets[1].Port=$c.SqlTargets[0].Port} },
             @{ Mutate={param($c) $c.SqlTargets[0].TrustServerCertificate=$true} },
             @{ Mutate={param($c) $c.SqlTargets[0]|Add-Member Password 'not-allowed'} },
+            @{ Mutate={param($c) $c.Portal.Port=0} },
+            @{ Mutate={param($c) $c.Portal.Scheme='http'} },
+            @{ Mutate={param($c) $c.Portal.AuthenticationMode='Basic'} },
+            @{ Mutate={param($c) $c.MonitoringValidation.InstrumentationName='Vendor.Monitoring'} },
+            @{ Mutate={param($c) $c.MonitoringValidation.BackendExpected=$true} },
             @{ Mutate={param($c) $c.Deployment|Add-Member UnknownValue 'not-allowed'} }
         )
         foreach($case in $cases){

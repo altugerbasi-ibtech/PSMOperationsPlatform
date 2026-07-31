@@ -68,9 +68,9 @@ try {
     exit 1
 }
 
-$sectionNames = @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','Security','Validation')
+$sectionNames = @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','MonitoringValidation','Security','Validation')
 Test-AllowedProperties $configuration '$' $sectionNames
-foreach ($sectionName in @('Deployment','SqlServer','Collector','Portal','SqlCollector','Security','Validation')) {
+foreach ($sectionName in @('Deployment','SqlServer','Collector','Portal','SqlCollector','MonitoringValidation','Security','Validation')) {
     [void](Test-RequiredObject $configuration $sectionName)
 }
 
@@ -105,13 +105,18 @@ if ($configuration.SqlServer.RecoveryModel -notin @('SIMPLE','FULL','BULK_LOGGED
 }
 
 Test-AllowedProperties $configuration.Collector 'Collector' @('Server','ServiceAccount','LogPath')
-Test-AllowedProperties $configuration.Portal 'Portal' @('Server','ServiceAccount')
+Test-AllowedProperties $configuration.Portal 'Portal' @('Name','Server','ServiceAccount','ValidationEnabled','DeploymentExpected','HostingModel','Scheme','Port','BasePath','HealthPath','AuthenticationMode','ExpectedProductVersion','ApplicationPath','ConfigurationPath','LogPath')
 Test-AllowedProperties $configuration.SqlCollector 'SqlCollector' @('Server','ServiceAccount')
 Test-RequiredString $configuration.Collector 'Collector' 'Server'
 Test-RequiredString $configuration.Collector 'Collector' 'ServiceAccount' '^[^\s]+\\[^\s]+\$$'
 Test-RequiredString $configuration.Collector 'Collector' 'LogPath'
 Test-RequiredString $configuration.Portal 'Portal' 'Server'
 Test-RequiredString $configuration.Portal 'Portal' 'ServiceAccount' '^[^\s]+\\[^\s]+\$$'
+Test-RequiredString $configuration.Portal 'Portal' 'Name' '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+foreach($name in @('ValidationEnabled','DeploymentExpected')){Test-Boolean $configuration.Portal 'Portal' $name}
+Test-Port $configuration.Portal.Port 'Portal.Port'
+foreach($item in @(@('HostingModel','^AspNetCoreIIS$'),@('Scheme','^https$'),@('BasePath','^/(?:[A-Za-z0-9._~-]+(?:/[A-Za-z0-9._~-]+)*)?$'),@('HealthPath','^/health$'),@('AuthenticationMode','^Windows$'),@('ApplicationPath','^[A-Za-z]:\\'),@('ConfigurationPath','^[A-Za-z]:\\'),@('LogPath','^[A-Za-z]:\\'))){Test-RequiredString $configuration.Portal 'Portal' $item[0] $item[1]}
+if($configuration.Portal.PSObject.Properties['ExpectedProductVersion'] -and ($configuration.Portal.ExpectedProductVersion -isnot [string] -or $configuration.Portal.ExpectedProductVersion -notmatch '^[0-9]+\.[0-9]+\.[0-9]+(?:-[0-9A-Za-z.-]+)?$')){Add-Diagnostic 'Schema violation: Portal.ExpectedProductVersion is invalid.'}
 Test-RequiredString $configuration.SqlCollector 'SqlCollector' 'Server'
 Test-RequiredString $configuration.SqlCollector 'SqlCollector' 'ServiceAccount' '^[^\s]+\\[^\s]+\$$'
 
@@ -136,6 +141,14 @@ if ($null -eq $configuration.PSObject.Properties['IisTargets'] -or
         }
     }
 }
+
+Test-AllowedProperties $configuration.MonitoringValidation 'MonitoringValidation' @('InstrumentationName','InstrumentationVersion','HealthValidationEnabled','MetricsValidationEnabled','ActivityValidationEnabled','SnapshotValidationEnabled','ExporterExpected','BackendExpected','ExporterType','ExporterEndpoint')
+Test-RequiredString $configuration.MonitoringValidation 'MonitoringValidation' 'InstrumentationName' '^PSMOperationsPlatform\.Execution$'
+Test-RequiredString $configuration.MonitoringValidation 'MonitoringValidation' 'InstrumentationVersion' '^1\.0$'
+foreach($name in @('HealthValidationEnabled','MetricsValidationEnabled','ActivityValidationEnabled','SnapshotValidationEnabled','ExporterExpected','BackendExpected')){Test-Boolean $configuration.MonitoringValidation 'MonitoringValidation' $name}
+if($configuration.MonitoringValidation.BackendExpected -and -not $configuration.MonitoringValidation.ExporterExpected){Add-Diagnostic 'Schema violation: MonitoringValidation.BackendExpected requires ExporterExpected.'}
+if($configuration.MonitoringValidation.ExporterExpected){Test-RequiredString $configuration.MonitoringValidation 'MonitoringValidation' 'ExporterType' '^OpenTelemetry$';Test-RequiredString $configuration.MonitoringValidation 'MonitoringValidation' 'ExporterEndpoint' '^https://[^/?#@]+(?::[0-9]{1,5})?/[A-Za-z0-9._~/-]*$'}
+elseif($configuration.MonitoringValidation.PSObject.Properties['ExporterType'] -or $configuration.MonitoringValidation.PSObject.Properties['ExporterEndpoint']){Add-Diagnostic 'Schema violation: exporter fields require ExporterExpected=true.'}
 
 if ($null -eq $configuration.PSObject.Properties['SqlTargets'] -or
     $configuration.SqlTargets -isnot [array] -or $configuration.SqlTargets.Count -eq 0) {

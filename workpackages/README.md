@@ -10,6 +10,12 @@ product: PSM Operations Platform
 ---
 # Work Package Specifications
 
+[`WP-007.Z.7`](WP-007.Z.7.md) validates Portal and Execution Monitoring
+readiness through the standard operational validation toolkit. Its repository
+implementation and human reviews are approved; live Portal and Monitoring
+validation remain separate, not executed, and not authorized by repository
+approval.
+
 [`WP-007.Z.6`](WP-007.Z.6.md) composes the approved Collector host, IIS, SQL,
 and Operations database validation evidence into a deterministic end-to-end
 Collector readiness decision. Its repository implementation is ready for

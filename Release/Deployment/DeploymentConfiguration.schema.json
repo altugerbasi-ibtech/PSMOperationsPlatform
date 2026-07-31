@@ -5,7 +5,7 @@
   "description": "Environment deployment inputs shared by release engineering, deployment, validation, and future installers. It contains no credentials or secrets.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["Deployment", "SqlServer", "Collector", "Portal", "SqlCollector", "IisTargets", "SqlTargets", "Security", "Validation"],
+  "required": ["Deployment", "SqlServer", "Collector", "Portal", "SqlCollector", "IisTargets", "SqlTargets", "MonitoringValidation", "Security", "Validation"],
   "properties": {
     "Deployment": {
       "type": "object",
@@ -47,10 +47,23 @@
     "Portal": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["Server", "ServiceAccount"],
+      "required": ["Name", "Server", "ServiceAccount", "ValidationEnabled", "DeploymentExpected", "HostingModel", "Scheme", "Port", "BasePath", "HealthPath", "AuthenticationMode", "ApplicationPath", "ConfigurationPath", "LogPath"],
       "properties": {
+        "Name": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$" },
         "Server": { "type": "string", "minLength": 1, "maxLength": 255, "description": "Portal installation server." },
-        "ServiceAccount": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\s]+\\\\[^\\s]+\\$$", "description": "Domain-qualified Portal gMSA name." }
+        "ServiceAccount": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\s]+\\\\[^\\s]+\\$$", "description": "Domain-qualified Portal gMSA name." },
+        "ValidationEnabled": { "type": "boolean" },
+        "DeploymentExpected": { "type": "boolean" },
+        "HostingModel": { "type": "string", "enum": ["AspNetCoreIIS"] },
+        "Scheme": { "type": "string", "enum": ["https"] },
+        "Port": { "type": "integer", "minimum": 1, "maximum": 65535 },
+        "BasePath": { "type": "string", "pattern": "^/(?:[A-Za-z0-9._~-]+(?:/[A-Za-z0-9._~-]+)*)?$" },
+        "HealthPath": { "type": "string", "const": "/health" },
+        "AuthenticationMode": { "type": "string", "const": "Windows" },
+        "ExpectedProductVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$" },
+        "ApplicationPath": { "type": "string", "minLength": 3, "maxLength": 260, "pattern": "^[A-Za-z]:\\\\" },
+        "ConfigurationPath": { "type": "string", "minLength": 3, "maxLength": 260, "pattern": "^[A-Za-z]:\\\\" },
+        "LogPath": { "type": "string", "minLength": 3, "maxLength": 260, "pattern": "^[A-Za-z]:\\\\" }
       }
     },
     "SqlCollector": {
@@ -96,6 +109,23 @@
           "RequiredPermissionsProfile": { "type": "string", "enum": ["SqlCollectorMetadataV1", "OperationsDatabaseValidationV1"] },
           "ValidationEnabled": { "type": "boolean" }
         }
+      }
+    },
+    "MonitoringValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["InstrumentationName", "InstrumentationVersion", "HealthValidationEnabled", "MetricsValidationEnabled", "ActivityValidationEnabled", "SnapshotValidationEnabled", "ExporterExpected", "BackendExpected"],
+      "properties": {
+        "InstrumentationName": { "type": "string", "const": "PSMOperationsPlatform.Execution" },
+        "InstrumentationVersion": { "type": "string", "const": "1.0" },
+        "HealthValidationEnabled": { "type": "boolean" },
+        "MetricsValidationEnabled": { "type": "boolean" },
+        "ActivityValidationEnabled": { "type": "boolean" },
+        "SnapshotValidationEnabled": { "type": "boolean" },
+        "ExporterExpected": { "type": "boolean" },
+        "BackendExpected": { "type": "boolean" },
+        "ExporterType": { "type": "string", "enum": ["OpenTelemetry"] },
+        "ExporterEndpoint": { "type": "string", "pattern": "^https://[^/?#@]+(?::[0-9]{1,5})?/[A-Za-z0-9._~/-]*$" }
       }
     },
     "Security": {

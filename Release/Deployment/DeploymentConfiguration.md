@@ -55,6 +55,14 @@ Validation reads the file only and never contacts an environment.
 | `Collector.LogPath` | Collector log directory |
 | `Portal.Server` | Dedicated Portal installation server |
 | `Portal.ServiceAccount` | Domain-qualified Portal gMSA ending `$` |
+| `Portal.Name` | Stable singleton Portal selector used by `-PortalName` |
+| `Portal.ValidationEnabled`, `.DeploymentExpected` | Contact and deployment-stage gates |
+| `Portal.HostingModel` | Repository-supported `AspNetCoreIIS` model |
+| `Portal.Scheme`, `.Port` | Approved HTTPS endpoint and TCP port |
+| `Portal.BasePath`, `.HealthPath` | Normalized paths; current health path is `/health` |
+| `Portal.AuthenticationMode` | Repository policy value `Windows` |
+| `Portal.ExpectedProductVersion` | Optional SemVer release expectation |
+| `Portal.ApplicationPath`, `.ConfigurationPath`, `.LogPath` | Controlled absolute Windows deployment paths |
 | `SqlCollector.Server` | Dedicated SQL Collector installation server |
 | `SqlCollector.ServiceAccount` | Domain-qualified SQL Collector gMSA ending `$` |
 | `IisTargets` | Non-empty array of unique IIS target DNS/server names; `iis01.example.invalid` |
@@ -68,6 +76,10 @@ Validation reads the file only and never contacts an environment.
 | `SqlTargets[].DatabasesToValidate` | Unique safe database names; may be empty for server-only checks |
 | `SqlTargets[].RequiredPermissionsProfile` | `SqlCollectorMetadataV1` or `OperationsDatabaseValidationV1` |
 | `SqlTargets[].ValidationEnabled` | Boolean contact gate |
+| `MonitoringValidation.InstrumentationName`, `.InstrumentationVersion` | Code-owned `PSMOperationsPlatform.Execution`, version `1.0` |
+| `MonitoringValidation.*ValidationEnabled` | Repository-safe health, metrics, Activity and snapshot gates |
+| `MonitoringValidation.ExporterExpected`, `.BackendExpected` | Honest external integration expectations; false by default |
+| `MonitoringValidation.ExporterType`, `.ExporterEndpoint` | Optional approved HTTPS exporter reference only when expected; never credentials |
 | `Security.WindowsAuthentication` | Boolean; must be `true` |
 | `Security.KerberosOnly` | Boolean controlling whether NTLM fallback is rejected |
 | `Security.WinRMPort` | Integer 1-65535; normally `5985` or `5986` |
@@ -98,6 +110,9 @@ secrets are prohibited.
   Kerberos-only WinRM policy in `Security`.
 - WP-007.Z.5 obtains every SQL endpoint from `SqlTargets`, uses Windows
   Integrated Security, and rejects secret-bearing or SQL-authentication fields.
+- WP-007.Z.7 obtains the singleton Portal endpoint and Monitoring expectations,
+  validates repository capabilities separately from live deployment, and does
+  not activate an exporter or backend.
 - Future Windows Collector, SQL Collector, and Portal installation tooling
   must consume this contract rather than introduce parallel environment files.
 
