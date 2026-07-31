@@ -82,6 +82,18 @@
     "ExporterExpected": false,
     "BackendExpected": false
   },
+  "PerformanceValidation": {
+    "PerformanceValidationEnabled": true,
+    "ValidationProfile": "Smoke",
+    "SyntheticTargetCount": 5,
+    "SyntheticRunCount": 10,
+    "SyntheticStepCount": 5,
+    "MaximumParallelism": 1,
+    "WarmupIterations": 1,
+    "MeasurementIterations": 3,
+    "LivePerformanceValidationEnabled": false,
+    "QueryPlanValidationEnabled": false
+  },
   "Security": {
     "WindowsAuthentication": true,
     "KerberosOnly": true,

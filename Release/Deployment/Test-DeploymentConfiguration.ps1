@@ -68,9 +68,9 @@ try {
     exit 1
 }
 
-$sectionNames = @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','MonitoringValidation','Security','Validation')
+$sectionNames = @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','MonitoringValidation','PerformanceValidation','Security','Validation')
 Test-AllowedProperties $configuration '$' $sectionNames
-foreach ($sectionName in @('Deployment','SqlServer','Collector','Portal','SqlCollector','MonitoringValidation','Security','Validation')) {
+foreach ($sectionName in @('Deployment','SqlServer','Collector','Portal','SqlCollector','MonitoringValidation','PerformanceValidation','Security','Validation')) {
     [void](Test-RequiredObject $configuration $sectionName)
 }
 
@@ -149,6 +149,15 @@ foreach($name in @('HealthValidationEnabled','MetricsValidationEnabled','Activit
 if($configuration.MonitoringValidation.BackendExpected -and -not $configuration.MonitoringValidation.ExporterExpected){Add-Diagnostic 'Schema violation: MonitoringValidation.BackendExpected requires ExporterExpected.'}
 if($configuration.MonitoringValidation.ExporterExpected){Test-RequiredString $configuration.MonitoringValidation 'MonitoringValidation' 'ExporterType' '^OpenTelemetry$';Test-RequiredString $configuration.MonitoringValidation 'MonitoringValidation' 'ExporterEndpoint' '^https://[^/?#@]+(?::[0-9]{1,5})?/[A-Za-z0-9._~/-]*$'}
 elseif($configuration.MonitoringValidation.PSObject.Properties['ExporterType'] -or $configuration.MonitoringValidation.PSObject.Properties['ExporterEndpoint']){Add-Diagnostic 'Schema violation: exporter fields require ExporterExpected=true.'}
+
+$performanceProperties=@('PerformanceValidationEnabled','ValidationProfile','SyntheticTargetCount','SyntheticRunCount','SyntheticStepCount','MaximumParallelism','WarmupIterations','MeasurementIterations','LivePerformanceValidationEnabled','QueryPlanValidationEnabled')
+Test-AllowedProperties $configuration.PerformanceValidation 'PerformanceValidation' $performanceProperties
+foreach($name in @('PerformanceValidationEnabled','LivePerformanceValidationEnabled','QueryPlanValidationEnabled')){Test-Boolean $configuration.PerformanceValidation 'PerformanceValidation' $name}
+Test-RequiredString $configuration.PerformanceValidation 'PerformanceValidation' 'ValidationProfile' '^(Smoke|Standard|Extended)$'
+$profileValues=@{Smoke=@(5,10,5,1,1,3);Standard=@(20,100,10,2,2,5);Extended=@(100,1000,20,4,3,7)}
+$numericNames=@('SyntheticTargetCount','SyntheticRunCount','SyntheticStepCount','MaximumParallelism','WarmupIterations','MeasurementIterations')
+if($configuration.PerformanceValidation.ValidationProfile -in $profileValues.Keys){$expected=$profileValues[$configuration.PerformanceValidation.ValidationProfile];for($i=0;$i -lt $numericNames.Count;$i++){if($configuration.PerformanceValidation.($numericNames[$i]) -isnot [int] -or $configuration.PerformanceValidation.($numericNames[$i]) -ne $expected[$i]){Add-Diagnostic "Schema violation: PerformanceValidation profile values must match the approved $($configuration.PerformanceValidation.ValidationProfile) profile."}}}
+if($configuration.PerformanceValidation.LivePerformanceValidationEnabled -or $configuration.PerformanceValidation.QueryPlanValidationEnabled){Add-Diagnostic 'Schema violation: live performance and query-plan validation require separate authorization and must be false.'}
 
 if ($null -eq $configuration.PSObject.Properties['SqlTargets'] -or
     $configuration.SqlTargets -isnot [array] -or $configuration.SqlTargets.Count -eq 0) {

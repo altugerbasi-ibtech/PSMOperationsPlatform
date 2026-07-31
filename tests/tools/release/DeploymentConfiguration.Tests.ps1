@@ -15,7 +15,7 @@ Describe 'WP-007.Z.2.A deployment configuration' {
     It 'defines every required section and rejects unknown properties' {
         $schema=Get-Content -Raw $schemaPath | ConvertFrom-Json
         $schema.additionalProperties|Should Be $false
-        foreach($name in @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','MonitoringValidation','Security','Validation')){
+        foreach($name in @('Deployment','SqlServer','Collector','Portal','SqlCollector','IisTargets','SqlTargets','MonitoringValidation','PerformanceValidation','Security','Validation')){
             ($schema.required -contains $name)|Should Be $true
             if($name -notin @('IisTargets','SqlTargets')){$schema.properties.$name.additionalProperties|Should Be $false}
         }
@@ -36,6 +36,8 @@ Describe 'WP-007.Z.2.A deployment configuration' {
         $schema.properties.Portal.properties.Port.minimum|Should Be 1
         ($schema.properties.Portal.properties.Scheme.enum -contains 'https')|Should Be $true
         $schema.properties.MonitoringValidation.properties.InstrumentationName.const|Should Be 'PSMOperationsPlatform.Execution'
+        $schema.properties.PerformanceValidation.properties.SyntheticRunCount.maximum|Should Be 1000
+        $schema.properties.PerformanceValidation.properties.MaximumParallelism.maximum|Should Be 4
     }
 
     It 'accepts the generic sample' {
@@ -72,6 +74,9 @@ Describe 'WP-007.Z.2.A deployment configuration' {
             @{ Mutate={param($c) $c.Portal.AuthenticationMode='Basic'} },
             @{ Mutate={param($c) $c.MonitoringValidation.InstrumentationName='Vendor.Monitoring'} },
             @{ Mutate={param($c) $c.MonitoringValidation.BackendExpected=$true} },
+            @{ Mutate={param($c) $c.PerformanceValidation.ValidationProfile='Unlimited'} },
+            @{ Mutate={param($c) $c.PerformanceValidation.SyntheticRunCount=1001} },
+            @{ Mutate={param($c) $c.PerformanceValidation.LivePerformanceValidationEnabled=$true} },
             @{ Mutate={param($c) $c.Deployment|Add-Member UnknownValue 'not-allowed'} }
         )
         foreach($case in $cases){

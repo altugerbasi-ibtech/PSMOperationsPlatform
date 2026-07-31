@@ -1,5 +1,9 @@
 # Monitoring Performance Budgets
 
+WP-007.Z.9 observes these budgets without changing them. Machine-sensitive
+synthetic timings are advisory; only existing approved correctness guards are
+enforced. Repository results are not production performance evidence.
+
 Status: **ADVISORY LOCAL REGRESSION GOALS**
 
 ## Correctness requirements

@@ -5,7 +5,7 @@
   "description": "Environment deployment inputs shared by release engineering, deployment, validation, and future installers. It contains no credentials or secrets.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["Deployment", "SqlServer", "Collector", "Portal", "SqlCollector", "IisTargets", "SqlTargets", "MonitoringValidation", "Security", "Validation"],
+  "required": ["Deployment", "SqlServer", "Collector", "Portal", "SqlCollector", "IisTargets", "SqlTargets", "MonitoringValidation", "PerformanceValidation", "Security", "Validation"],
   "properties": {
     "Deployment": {
       "type": "object",
@@ -126,6 +126,23 @@
         "BackendExpected": { "type": "boolean" },
         "ExporterType": { "type": "string", "enum": ["OpenTelemetry"] },
         "ExporterEndpoint": { "type": "string", "pattern": "^https://[^/?#@]+(?::[0-9]{1,5})?/[A-Za-z0-9._~/-]*$" }
+      }
+    },
+    "PerformanceValidation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["PerformanceValidationEnabled", "ValidationProfile", "SyntheticTargetCount", "SyntheticRunCount", "SyntheticStepCount", "MaximumParallelism", "WarmupIterations", "MeasurementIterations", "LivePerformanceValidationEnabled", "QueryPlanValidationEnabled"],
+      "properties": {
+        "PerformanceValidationEnabled": { "type": "boolean" },
+        "ValidationProfile": { "type": "string", "enum": ["Smoke", "Standard", "Extended"] },
+        "SyntheticTargetCount": { "type": "integer", "minimum": 1, "maximum": 100 },
+        "SyntheticRunCount": { "type": "integer", "minimum": 1, "maximum": 1000 },
+        "SyntheticStepCount": { "type": "integer", "minimum": 1, "maximum": 20 },
+        "MaximumParallelism": { "type": "integer", "minimum": 1, "maximum": 4 },
+        "WarmupIterations": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "MeasurementIterations": { "type": "integer", "minimum": 1, "maximum": 10 },
+        "LivePerformanceValidationEnabled": { "type": "boolean", "const": false },
+        "QueryPlanValidationEnabled": { "type": "boolean", "const": false }
       }
     },
     "Security": {

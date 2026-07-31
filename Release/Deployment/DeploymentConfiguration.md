@@ -8,6 +8,13 @@ product: PSM Operations Platform
 ---
 # Deployment Configuration
 
+`PerformanceValidation` defines only bounded repository-validation profiles:
+Smoke (5 targets, 10 runs, 5 steps, parallelism 1, warmup 1, measurements 3),
+Standard (20, 100, 10, 2, 2, 5), and Extended (100, 1000, 20, 4, 3, 7).
+Live and query-plan flags must remain false without separate authorization.
+These values are not product capacity limits and contain no output path or
+environment sizing.
+
 ## Contract
 
 `DeploymentConfiguration.json` is the single environment-input contract for
