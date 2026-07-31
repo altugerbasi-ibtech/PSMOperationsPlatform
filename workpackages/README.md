@@ -10,6 +10,11 @@ product: PSM Operations Platform
 ---
 # Work Package Specifications
 
+[`WP-007.Z.10`](WP-007.Z.10.md) provides the final evidence aggregation and
+deterministic production-readiness gate. Its repository implementation is
+approved; the current decision is `NOT_READY_FOR_PRODUCTION` because mandatory
+Portal Windows Authentication is not composed, and no live evidence is inferred.
+
 [`WP-007.Z.8`](WP-007.Z.8.md) validates Execution History persistence, query,
 projection and retention readiness through the standard operational validation
 toolkit. Repository implementation and human reviews are approved; live History

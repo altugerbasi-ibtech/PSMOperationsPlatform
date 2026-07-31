@@ -98,3 +98,7 @@ RAT report generation writes evidence files only. It modifies no runtime,
 service, directory identity, SPN, network, database, permission, or
 infrastructure state. A READY decision is release evidence for human review;
 it does not deploy the product or replace required approval.
+
+WP-007.Z.10 consumes a RAT report as one mandatory production gate. Repository
+RAT tests are not a live RAT, and even a passing live RAT cannot override a
+missing mandatory capability or blocking security defect.

@@ -97,3 +97,8 @@ feature implementation.
 
 Deployment, live verification, evidence acceptance, signing policy, and
 production certification remain separately controlled.
+
+The final controlled-deployment assessment is performed by
+`tools/validation/production/Invoke-ProductionReadinessValidation.ps1`. It
+validates bundle and evidence alignment but does not alter or certify a release
+without all mandatory live evidence and human approvals.
