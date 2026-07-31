@@ -12,6 +12,11 @@ product: PSM Operations Platform
 ---
 # WP-009.5 Release Verification Guide
 
+WP-009.5 consumes the approved
+`Release/Deployment/DeploymentConfiguration.json` for SQL, Collector, Portal,
+SQL Collector, WinRM, SPN, authentication, and TLS inputs. Validate the file
+first and pass only the applicable values to the existing read-only scripts.
+
 ## Purpose
 
 These scripts collect read-only infrastructure evidence after an approved

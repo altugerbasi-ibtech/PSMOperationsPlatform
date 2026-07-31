@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://psmoperationsplatform.example.invalid/schemas/deployment-configuration.schema.json",
+  "title": "PSM Operations Platform Deployment Configuration",
+  "description": "Environment deployment inputs shared by release engineering, deployment, validation, and future installers. It contains no credentials or secrets.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["Deployment", "SqlServer", "Collector", "Portal", "SqlCollector", "Security", "Validation"],
+  "properties": {
+    "Deployment": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["EnvironmentName", "ProductVersion", "ReleaseVersion", "GitCommit"],
+      "properties": {
+        "EnvironmentName": { "type": "string", "minLength": 1, "maxLength": 64, "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$", "description": "Non-secret deployment environment label." },
+        "ProductVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$", "description": "Semantic product version from the approved release." },
+        "ReleaseVersion": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$", "description": "Semantic release bundle version." },
+        "GitCommit": { "type": "string", "pattern": "^[0-9A-Fa-f]{40}$", "description": "Full source Git commit from the release manifest." }
+      }
+    },
+    "SqlServer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["Server", "Instance", "Port", "Database", "DataPath", "LogPath", "CompatibilityLevel", "RecoveryModel", "Collation"],
+      "properties": {
+        "Server": { "type": "string", "minLength": 1, "maxLength": 255, "description": "SQL Server DNS name without port or connection-string syntax." },
+        "Instance": { "type": "string", "minLength": 1, "maxLength": 128, "description": "SQL Server instance name, including MSSQLSERVER for the default instance." },
+        "Port": { "type": "integer", "minimum": 1, "maximum": 65535, "description": "Approved static SQL TCP port." },
+        "Database": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9_.-]+$", "description": "Operations database name." },
+        "DataPath": { "type": "string", "minLength": 1, "maxLength": 260, "description": "SQL Server-accessible data-file directory." },
+        "LogPath": { "type": "string", "minLength": 1, "maxLength": 260, "description": "SQL Server-accessible transaction-log directory." },
+        "CompatibilityLevel": { "type": "integer", "const": 160, "description": "Repository-approved SQL Server compatibility level." },
+        "RecoveryModel": { "type": "string", "enum": ["SIMPLE", "FULL", "BULK_LOGGED"], "description": "DBA-approved SQL Server recovery model." },
+        "Collation": { "type": "string", "minLength": 1, "maxLength": 128, "pattern": "^[A-Za-z0-9_]+$", "description": "Exact DBA-approved database collation." }
+      }
+    },
+    "Collector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["Server", "ServiceAccount", "LogPath"],
+      "properties": {
+        "Server": { "type": "string", "minLength": 1, "maxLength": 255, "description": "Windows Collector installation server." },
+        "ServiceAccount": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\s]+\\\\[^\\s]+\\$$", "description": "Domain-qualified Windows Collector gMSA name." },
+        "LogPath": { "type": "string", "minLength": 1, "maxLength": 260, "description": "Collector service log directory." }
+      }
+    },
+    "Portal": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["Server", "ServiceAccount"],
+      "properties": {
+        "Server": { "type": "string", "minLength": 1, "maxLength": 255, "description": "Portal installation server." },
+        "ServiceAccount": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\s]+\\\\[^\\s]+\\$$", "description": "Domain-qualified Portal gMSA name." }
+      }
+    },
+    "SqlCollector": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["Server", "ServiceAccount"],
+      "properties": {
+        "Server": { "type": "string", "minLength": 1, "maxLength": 255, "description": "SQL Collector installation server." },
+        "ServiceAccount": { "type": "string", "minLength": 1, "maxLength": 256, "pattern": "^[^\\s]+\\\\[^\\s]+\\$$", "description": "Domain-qualified SQL Collector gMSA name, distinct from the Windows Collector identity." }
+      }
+    },
+    "Security": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["WindowsAuthentication", "KerberosOnly", "WinRMPort", "IncludePortInSPN", "UseTLS"],
+      "properties": {
+        "WindowsAuthentication": { "type": "boolean", "const": true, "description": "Requires Windows Integrated Authentication." },
+        "KerberosOnly": { "type": "boolean", "description": "Whether authentication must reject NTLM fallback." },
+        "WinRMPort": { "type": "integer", "minimum": 1, "maximum": 65535, "description": "Approved WinRM TCP port, normally 5985 or 5986." },
+        "IncludePortInSPN": { "type": "boolean", "description": "Whether the approved HTTP SPN includes the WinRM port." },
+        "UseTLS": { "type": "boolean", "description": "Whether WinRM and deployment connections require TLS." }
+      }
+    },
+    "Validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["RunSchemaValidation", "RunPermissionValidation", "RunReleaseAcceptanceTest"],
+      "properties": {
+        "RunSchemaValidation": { "type": "boolean", "description": "Runs WP-009.3 schema validation." },
+        "RunPermissionValidation": { "type": "boolean", "description": "Runs WP-009.4 permission validation." },
+        "RunReleaseAcceptanceTest": { "type": "boolean", "description": "Runs WP-009.7 release acceptance evaluation." }
+      }
+    }
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "Deployment": {
+    "EnvironmentName": "LAB",
+    "ProductVersion": "1.0.0",
+    "ReleaseVersion": "1.0.0",
+    "GitCommit": "0123456789abcdef0123456789abcdef01234567"
+  },
+  "SqlServer": {
+    "Server": "sql.example.invalid",
+    "Instance": "MSSQLSERVER",
+    "Port": 1433,
+    "Database": "PSMOperationsPlatform",
+    "DataPath": "D:\\SQLData",
+    "LogPath": "E:\\SQLLog",
+    "CompatibilityLevel": 160,
+    "RecoveryModel": "SIMPLE",
+    "Collation": "Latin1_General_100_CI_AS_SC"
+  },
+  "Collector": {
+    "Server": "collector.example.invalid",
+    "ServiceAccount": "EXAMPLE\\gmsa-collector$",
+    "LogPath": "D:\\PSM\\Logs\\Collector"
+  },
+  "Portal": {
+    "Server": "portal.example.invalid",
+    "ServiceAccount": "EXAMPLE\\gmsa-portal$"
+  },
+  "SqlCollector": {
+    "Server": "sqlcollector.example.invalid",
+    "ServiceAccount": "EXAMPLE\\gmsa-sqlcollector$"
+  },
+  "Security": {
+    "WindowsAuthentication": true,
+    "KerberosOnly": true,
+    "WinRMPort": 5985,
+    "IncludePortInSPN": true,
+    "UseTLS": false
+  },
+  "Validation": {
+    "RunSchemaValidation": true,
+    "RunPermissionValidation": true,
+    "RunReleaseAcceptanceTest": true
+  }
+}

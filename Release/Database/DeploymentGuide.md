@@ -24,6 +24,12 @@ This document does not authorize a deployment. Replace every
 Never store credentials or production connection strings in the repository or
 release evidence.
 
+WP-009.2 consumes the single approved
+`Release/Deployment/DeploymentConfiguration.json` copy described in
+`Release/Deployment/DeploymentConfiguration.md`. Its `SqlServer`,
+`Deployment`, and `Security` values replace the placeholders in this guide;
+parallel environment configuration files are not permitted.
+
 ## Supported SQL Server Versions
 
 - Microsoft SQL Server 2022 or later.

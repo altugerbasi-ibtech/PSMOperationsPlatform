@@ -12,6 +12,11 @@ product: PSM Operations Platform
 ---
 # WP-009.7 Release Acceptance Test Guide
 
+WP-009.7 consumes the approved
+`Release/Deployment/DeploymentConfiguration.json` for release identity and
+validation gates. Missing mandatory evidence still forces `FAIL`; disabling a
+configuration gate does not manufacture a passing result.
+
 ## Purpose
 
 The RAT reporting layer combines supplied read-only validation results and

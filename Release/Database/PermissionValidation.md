@@ -12,6 +12,12 @@ product: PSM Operations Platform
 ---
 # WP-009.4 Database Permission Validation
 
+WP-009.4 consumes the approved deployment configuration in
+`Release/Deployment/DeploymentConfiguration.json`. The Collector, Portal, and
+SQL Collector service-account values identify the environment mappings from
+which the three database-user inputs are derived. Do not create a separate
+principal configuration file.
+
 ## Purpose
 
 `PermissionValidation.sql` validates effective Operations Database permissions

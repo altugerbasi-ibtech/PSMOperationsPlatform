@@ -1,0 +1,44 @@
+{
+  "Deployment": {
+    "EnvironmentName": "",
+    "ProductVersion": "",
+    "ReleaseVersion": "",
+    "GitCommit": ""
+  },
+  "SqlServer": {
+    "Server": "",
+    "Instance": "",
+    "Port": 1433,
+    "Database": "",
+    "DataPath": "",
+    "LogPath": "",
+    "CompatibilityLevel": 160,
+    "RecoveryModel": "SIMPLE",
+    "Collation": ""
+  },
+  "Collector": {
+    "Server": "",
+    "ServiceAccount": "",
+    "LogPath": ""
+  },
+  "Portal": {
+    "Server": "",
+    "ServiceAccount": ""
+  },
+  "SqlCollector": {
+    "Server": "",
+    "ServiceAccount": ""
+  },
+  "Security": {
+    "WindowsAuthentication": true,
+    "KerberosOnly": true,
+    "WinRMPort": 5985,
+    "IncludePortInSPN": true,
+    "UseTLS": false
+  },
+  "Validation": {
+    "RunSchemaValidation": true,
+    "RunPermissionValidation": true,
+    "RunReleaseAcceptanceTest": true
+  }
+}

@@ -12,6 +12,11 @@ product: PSM Operations Platform
 ---
 # WP-009.3 Schema Validation
 
+WP-009.3 consumes the approved deployment configuration in
+`Release/Deployment/DeploymentConfiguration.json`. `SqlServer.Database`,
+`CompatibilityLevel`, `Collation`, and `RecoveryModel` provide the matching
+SQLCMD inputs. Validate the configuration before running this script.
+
 ## Purpose
 
 `SchemaValidation.sql` is a standalone, read-only SQLCMD-compatible validation
