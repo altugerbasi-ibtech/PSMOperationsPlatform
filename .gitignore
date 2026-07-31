@@ -12,6 +12,8 @@ artifacts/*
 artifacts/validation/*
 !artifacts/validation/WP-007.Z.2/
 !artifacts/validation/WP-007.Z.2/**
+!artifacts/validation/WP-007.Z.3/
+!artifacts/validation/WP-007.Z.3/**
 .vscode/
 .idea/
 Thumbs.db
@@ -25,4 +27,6 @@ appsettings.*.local.json
 logs/
 !artifacts/validation/WP-007.Z.2/Logs/
 !artifacts/validation/WP-007.Z.2/Logs/README.md
+!artifacts/validation/WP-007.Z.3/Logs/
+!artifacts/validation/WP-007.Z.3/Logs/README.md
 *.log
