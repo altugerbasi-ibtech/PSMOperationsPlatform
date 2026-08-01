@@ -75,6 +75,12 @@ Validation reads the file only and never contacts an environment.
 | `Portal.AuthenticationMode` | Repository policy value `Windows` |
 | `Portal.ExpectedProductVersion` | Optional SemVer release expectation |
 | `Portal.ApplicationPath`, `.ConfigurationPath`, `.LogPath` | Controlled absolute Windows deployment paths |
+
+`Portal.AuthenticationMode=Windows` requires IIS Windows Authentication enabled
+and Anonymous Authentication disabled for protected Portal access. Basic and
+Forms Authentication are prohibited. Generic `/health` is the only approved
+anonymous liveness exception and must not expose diagnostics or contact targets.
+Configuration validation records policy; it does not alter or prove live IIS.
 | `SqlCollector.Server` | Dedicated SQL Collector installation server |
 | `SqlCollector.ServiceAccount` | Domain-qualified SQL Collector gMSA ending `$` |
 | `IisTargets` | Non-empty array of unique IIS target DNS/server names; `iis01.example.invalid` |

@@ -13,6 +13,20 @@ product: PSM Operations Platform
 
 Minimum components: IIS-hosted web application, Windows Collector service, SQL Collector service and central SQL Server database. Collectors may run together or separately. Target network flow is outbound from collectors to managed systems; targets do not initiate connections.
 
+## Portal IIS authentication
+
+The .NET 10 Minimal API Portal uses ASP.NET Core IIS Integration and the IIS
+Windows Authentication scheme. Controlled IIS deployment must enable Windows
+Authentication, disable Anonymous Authentication for protected Portal access,
+disable Basic Authentication, use no Forms Authentication, retain HTTPS
+certificate validation, and run under the approved dedicated Portal identity.
+
+The existing generic `/health` endpoint is an explicit bounded anonymous
+liveness exception. Operations must implement that exception without making
+other Portal traffic anonymous. The SDK-generated ANCM `web.config` convention
+is retained; the repository does not carry a duplicate configuration file.
+Live IIS and Kerberos evidence remain required after repository deployment.
+
 ## Host startup configuration
 
 Runtime host application overrides use the WP-003 prefix:

@@ -25,6 +25,8 @@ function Test-PortalMonitoringConfiguration {
 
 function New-PortalMonitoringOperations {
     param([string]$RepositoryRoot)
+    $root=$RepositoryRoot
+    $getAuthenticationFacts=${function:Get-PortalAuthenticationCompositionFacts}
     @{
         ResolveDns={param($name)@(Resolve-OperationalDns $name)}
         TestTcp={param($name,$port)Test-OperationalTcpPort $name $port}
@@ -39,18 +41,19 @@ function New-PortalMonitoringOperations {
             if($target.Count -ne 1){throw 'Exactly one enabled Operations database target is required.'}
             Invoke-SqlTargetChecks $configuration $target[0] 1 $source $false $false (New-SqlTargetValidationOperations)
         }
-        GetRepositoryFacts={
-            $program=Get-Content -Raw (Join-Path $RepositoryRoot 'src\PSMOperationsPlatform.Web\Program.cs')
-            $settings=Get-Content -Raw (Join-Path $RepositoryRoot 'src\PSMOperationsPlatform.Web\appsettings.json')
-            $monitoring=Get-Content -Raw (Join-Path $RepositoryRoot 'src\PSMOperationsPlatform.Application\Runtime\ExecutionMonitoring.cs')
-            $composition=Get-Content -Raw (Join-Path $RepositoryRoot 'src\PSMOperationsPlatform.Infrastructure\Persistence\OperationsDatabasePersistenceServiceCollectionExtensions.cs')
-            $health=Get-Content -Raw (Join-Path $RepositoryRoot 'src\PSMOperationsPlatform.WindowsCollector\WindowsCollectorHost.cs')
+        GetRepositoryFacts=({
+            $program=Get-Content -Raw (Join-Path $root 'src\PSMOperationsPlatform.Web\Program.cs')
+            $settings=Get-Content -Raw (Join-Path $root 'src\PSMOperationsPlatform.Web\appsettings.json')
+            $monitoring=Get-Content -Raw (Join-Path $root 'src\PSMOperationsPlatform.Application\Runtime\ExecutionMonitoring.cs')
+            $composition=Get-Content -Raw (Join-Path $root 'src\PSMOperationsPlatform.Infrastructure\Persistence\OperationsDatabasePersistenceServiceCollectionExtensions.cs')
+            $health=Get-Content -Raw (Join-Path $root 'src\PSMOperationsPlatform.WindowsCollector\WindowsCollectorHost.cs')
+            $authentication=& $getAuthenticationFacts $root
             [pscustomobject]@{
-                GenericHealth=$program -match 'MapHealthChecks\("/health"\)';DedicatedMonitoringEndpoint=$program -match 'monitoring';WindowsAuthentication=$program -match 'AddAuthentication|UseAuthentication';AllowedHostsRestricted=$settings -notmatch '"AllowedHosts"\s*:\s*"\*"'
+                GenericHealth=$program -match 'MapHealthChecks\("/health"\)';DedicatedMonitoringEndpoint=$program -match 'monitoring';WindowsAuthentication=$authentication.Composed;IisWindowsScheme=$authentication.IisWindowsScheme;AuthenticationMiddleware=$authentication.AuthenticationMiddleware;AuthorizationMiddleware=$authentication.AuthorizationMiddleware;AuthenticatedFallbackPolicy=$authentication.AuthenticatedFallbackPolicy;AnonymousHealth=$authentication.AnonymousHealth;AllowedHostsRestricted=$settings -notmatch '"AllowedHosts"\s*:\s*"\*"'
                 InstrumentationName=$monitoring -match 'InstrumentationName\s*=\s*"PSMOperationsPlatform\.Execution"';InstrumentationVersion=$monitoring -match 'InstrumentationVersion\s*=\s*"1\.0"';SchemaVersion=$monitoring -match 'ExecutionMonitoringSchemaVersion.*Value\s*=\s*1';SnapshotSchemaVersion=$monitoring -match 'ExecutionMonitoringSnapshotSchemaVersion.*Value\s*=\s*1'
                 MetricCatalog=$monitoring -match 'ExecutionMetricCatalog';Meter=$monitoring -match 'new\(ExecutionMetricCatalog\.InstrumentationName';Activities=$monitoring -match 'ActivitySource';Snapshot=$monitoring -match 'GetCurrentSnapshot';HealthAssessment=$monitoring -match 'MonitoringHealthAssessment';Subscriber=$composition -match 'ExecutionMonitoringEventSubscriber';LoggingSubscriber=$composition -match 'LoggingExecutionEventSubscriber';Composite=$composition -match 'CompositeExecutionEventSink';HealthRegistration=$health -match 'AddCheck<ExecutionMonitoringHealthCheck>\("execution-monitoring"\)';ExporterConfigured=$false;BackendConfigured=$false
             }
-        }
+        }).GetNewClosure()
         CurrentIdentity={[Security.Principal.WindowsIdentity]::GetCurrent().Name}
     }
 }
@@ -67,6 +70,13 @@ function Invoke-PortalMonitoringChecks {
     $results.Add((New-PortalMonitoringCheck $prefix 'TARGET.CONFIGURATION' PortalTargetConfiguration 'Portal target configuration' $portal.Name $true PASS INFO $true 'The enabled singleton Portal definition is valid and secret-free.' $null $true))
     if(-not $portal.ValidationEnabled){$results.Add((New-PortalMonitoringCheck $prefix 'TARGET.DISABLED' PortalTargetConfiguration 'Portal validation enabled' $portal.Name $false NOT_APPLICABLE INFO $false 'Portal validation is disabled by configuration.'));return $results.ToArray()}
     $facts=& $Operations.GetRepositoryFacts
+    foreach($item in @(
+        @('AUTH.SCHEME','IIS Windows Authentication scheme',$facts.IisWindowsScheme),
+        @('AUTH.MIDDLEWARE','Authentication middleware',$facts.AuthenticationMiddleware),
+        @('AUTHORIZATION.MIDDLEWARE','Authorization middleware order',$facts.AuthorizationMiddleware),
+        @('AUTHORIZATION.FALLBACK','Authenticated fallback policy',$facts.AuthenticatedFallbackPolicy),
+        @('HEALTH.ANONYMOUS','Explicit anonymous generic health policy',$facts.AnonymousHealth)
+    )){$valid=[bool]$item[2];$results.Add((New-PortalMonitoringCheck $prefix $item[0] PortalAuthentication $item[1] 'repository' $valid $(if($valid){'PASS'}else{'FAIL'}) $(if($valid){'INFO'}else{'CRITICAL'}) $true 'Bounded source composition evidence only; live IIS and HTTP transport remain unvalidated.' 'Restore the approved IIS Integration composition.' $true))}
     if($SkipPortalChecks){Add-PortalStageChecks $results $prefix $portal 'SkipPortalChecks was supplied.'}
     elseif(-not $portal.DeploymentExpected){Add-PortalStageChecks $results $prefix $portal 'Portal deployment is not expected at this stage.'}
     else{

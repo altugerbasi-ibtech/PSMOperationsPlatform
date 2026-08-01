@@ -10,6 +10,11 @@ product: PSM Operations Platform
 ---
 # Work Package Specifications
 
+[`WP-010.1`](WP-010.1.md) composes Portal Windows Authentication through the
+approved IIS Integration model, authenticated fallback policy, and explicit
+anonymous generic health exception. Repository implementation is approved;
+live IIS and Kerberos validation remain separate and unexecuted.
+
 [`WP-007.Z.10`](WP-007.Z.10.md) provides the final evidence aggregation and
 deterministic production-readiness gate. Its repository implementation is
 approved; the current decision is `NOT_READY_FOR_PRODUCTION` because mandatory

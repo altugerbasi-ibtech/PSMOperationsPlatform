@@ -102,3 +102,9 @@ it does not deploy the product or replace required approval.
 WP-007.Z.10 consumes a RAT report as one mandatory production gate. Repository
 RAT tests are not a live RAT, and even a passing live RAT cannot override a
 missing mandatory capability or blocking security defect.
+
+Portal RAT evidence must show deployed IIS Windows Authentication, 401 for an
+unauthenticated protected request, authenticated protected access, the approved
+anonymous bounded `/health`, and the observed HTTP authentication scheme. Source
+composition is not live Kerberos evidence, and RAT must not record tickets,
+authorization headers, claims collections, or user secrets.

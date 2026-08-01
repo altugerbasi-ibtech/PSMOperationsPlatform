@@ -22,7 +22,7 @@ This is the authoritative gate inventory. Actual results are populated only from
 | PRD.08.IIS | IIS targets | Every configured IIS target passes | Live | Yes | PASS | Missing live evidence | Infrastructure | Execute approved IIS validation; rerun |
 | PRD.09.SQL | SQL targets | Auth, encryption, metadata pass | Live | Yes | PASS | Missing live evidence | Database | Execute approved SQL validation; rerun |
 | PRD.10.E2E | End-to-end | Complete execution path passes | Live | Yes | PASS | Missing live evidence | Operations | Execute approved E2E validation; rerun |
-| PRD.11.PORTAL.AUTH | Portal | Windows Authentication composed | Repository/live | Yes | PASS | **FAIL: capability absent** | Application | Implement under approved feature WP; retest |
+| PRD.11.PORTAL.AUTH | Portal | Windows Authentication composed | Repository/live | Yes | PASS | Repository composition present; live evidence missing | Application | Validate controlled IIS and HTTP Kerberos; retest |
 | PRD.12.MONITORING | Monitoring | Backend posture and risk accepted | Repository/human/live | Conditional | PASS/WARNING | Backend absent; acceptance not inferred | Operations | Record approved posture/risk; retest |
 | PRD.13.HISTORY | History | Schema and behavior validated | Live | Yes | PASS | Missing live evidence | Database | Execute approved history validation; rerun |
 | PRD.14.RETENTION | Retention | Policy and cleanup plan validated | Live/human | Yes | PASS | No dry-run API or scheduler | Operations | Approve safe operating plan; rerun |
@@ -31,4 +31,4 @@ This is the authoritative gate inventory. Actual results are populated only from
 | PRD.17.OPERATIONS | Operations | Ownership/change/rollback approvals | Human | Yes | PASS | Must not be inferred | Operations | Obtain named approvals externally; rerun |
 | PRD.18.RAT | RAT | Intended release/environment RAT passes | Live/release | Yes | PASS | Missing live evidence | Release Management | Execute approved RAT; rerun |
 | PRD.19.RISKS | Risks | Every exception explicitly accepted | Human | Yes | PASS/WARNING | Must not be auto-accepted | Risk owner | Record acceptance; rerun |
-| PRD.20.DECISION | Decision | Deterministic precedence applied | Aggregate | Yes | PASS | NOT_READY_FOR_PRODUCTION | Release Management | Resolve blockers and rerun all affected gates |
+| PRD.20.DECISION | Decision | Deterministic precedence applied | Aggregate | Yes | PASS | NOT_READY_FOR_PRODUCTION: Monitoring risk acceptance remains absent | Release Management | Resolve blockers and rerun all affected gates |

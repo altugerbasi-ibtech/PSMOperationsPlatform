@@ -151,6 +151,26 @@ function Get-OperationalConfigurationHash {
     (Get-FileHash -LiteralPath $ConfigurationPath -Algorithm SHA256).Hash
 }
 
+function Get-PortalAuthenticationCompositionFacts {
+    param([Parameter(Mandatory)][string]$RepositoryRoot)
+
+    $program = Get-Content -Raw (Join-Path $RepositoryRoot 'src\PSMOperationsPlatform.Web\Program.cs')
+    $composition = Get-Content -Raw (Join-Path $RepositoryRoot 'src\PSMOperationsPlatform.Web\Security\PortalAuthenticationComposition.cs')
+    $authenticationIndex = $composition.IndexOf('UseAuthentication()', [StringComparison]::Ordinal)
+    $authorizationIndex = $composition.IndexOf('UseAuthorization()', [StringComparison]::Ordinal)
+
+    $facts = [pscustomobject]@{
+        IisWindowsScheme = $composition -match 'AddAuthentication\(IISDefaults\.AuthenticationScheme\)'
+        AuthenticationMiddleware = $authenticationIndex -ge 0
+        AuthorizationMiddleware = $authorizationIndex -gt $authenticationIndex
+        AuthenticatedFallbackPolicy = $composition -match 'FallbackPolicy' -and $composition -match 'RequireAuthenticatedUser\(\)'
+        AnonymousHealth = $program -match 'MapHealthChecks\("/health"\)\.AllowAnonymous\(\)'
+    }
+    $facts | Add-Member Composed ([bool]($facts.IisWindowsScheme -and $facts.AuthenticationMiddleware -and `
+        $facts.AuthorizationMiddleware -and $facts.AuthenticatedFallbackPolicy -and $facts.AnonymousHealth))
+    $facts
+}
+
 function Test-OperationalPort {
     param([object]$Port)
     return ($Port -is [int] -and $Port -ge 1 -and $Port -le 65535)
