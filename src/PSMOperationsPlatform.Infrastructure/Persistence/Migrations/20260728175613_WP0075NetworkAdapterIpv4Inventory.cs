@@ -10,17 +10,28 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropIndex(
+                name: "UX_WindowsNetworkAdapterInventory_ManagedServer_StableSourceKey",
+                schema: "inventory",
+                table: "WindowsNetworkAdapterInventory");
+
             migrationBuilder.RenameColumn(
                 name: "StableSourceKey",
                 schema: "inventory",
                 table: "WindowsNetworkAdapterInventory",
                 newName: "AdapterKey");
 
-            migrationBuilder.RenameIndex(
-                name: "UX_WindowsNetworkAdapterInventory_ManagedServer_StableSourceKey",
+            migrationBuilder.CreateIndex(
                 schema: "inventory",
                 table: "WindowsNetworkAdapterInventory",
-                newName: "UX_WindowsNetworkAdapterInventory_ManagedServer_AdapterKey");
+                name: "UX_WindowsNetworkAdapterInventory_ManagedServer_AdapterKey",
+                columns: new[] { "ManagedServerId", "AdapterKey" },
+                unique: true);
+
+            migrationBuilder.DropIndex(
+                name: "UX_WindowsIpv4AddressInventory_ManagedServer_StableSourceKey",
+                schema: "inventory",
+                table: "WindowsIpv4AddressInventory");
 
             migrationBuilder.RenameColumn(
                 name: "StableSourceKey",
@@ -28,11 +39,12 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
                 table: "WindowsIpv4AddressInventory",
                 newName: "Ipv4Key");
 
-            migrationBuilder.RenameIndex(
-                name: "UX_WindowsIpv4AddressInventory_ManagedServer_StableSourceKey",
+            migrationBuilder.CreateIndex(
                 schema: "inventory",
                 table: "WindowsIpv4AddressInventory",
-                newName: "UX_WindowsIpv4AddressInventory_ManagedServer_Ipv4Key");
+                name: "UX_WindowsIpv4AddressInventory_ManagedServer_Ipv4Key",
+                columns: new[] { "ManagedServerId", "Ipv4Key" },
+                unique: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "FriendlyName",
@@ -207,17 +219,28 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
                 schema: "inventory",
                 table: "WindowsIpv4AddressInventory");
 
+            migrationBuilder.DropIndex(
+                name: "UX_WindowsNetworkAdapterInventory_ManagedServer_AdapterKey",
+                schema: "inventory",
+                table: "WindowsNetworkAdapterInventory");
+
             migrationBuilder.RenameColumn(
                 name: "AdapterKey",
                 schema: "inventory",
                 table: "WindowsNetworkAdapterInventory",
                 newName: "StableSourceKey");
 
-            migrationBuilder.RenameIndex(
-                name: "UX_WindowsNetworkAdapterInventory_ManagedServer_AdapterKey",
+            migrationBuilder.CreateIndex(
                 schema: "inventory",
                 table: "WindowsNetworkAdapterInventory",
-                newName: "UX_WindowsNetworkAdapterInventory_ManagedServer_StableSourceKey");
+                name: "UX_WindowsNetworkAdapterInventory_ManagedServer_StableSourceKey",
+                columns: new[] { "ManagedServerId", "StableSourceKey" },
+                unique: true);
+
+            migrationBuilder.DropIndex(
+                name: "UX_WindowsIpv4AddressInventory_ManagedServer_Ipv4Key",
+                schema: "inventory",
+                table: "WindowsIpv4AddressInventory");
 
             migrationBuilder.RenameColumn(
                 name: "Ipv4Key",
@@ -225,11 +248,12 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
                 table: "WindowsIpv4AddressInventory",
                 newName: "StableSourceKey");
 
-            migrationBuilder.RenameIndex(
-                name: "UX_WindowsIpv4AddressInventory_ManagedServer_Ipv4Key",
+            migrationBuilder.CreateIndex(
                 schema: "inventory",
                 table: "WindowsIpv4AddressInventory",
-                newName: "UX_WindowsIpv4AddressInventory_ManagedServer_StableSourceKey");
+                name: "UX_WindowsIpv4AddressInventory_ManagedServer_StableSourceKey",
+                columns: new[] { "ManagedServerId", "StableSourceKey" },
+                unique: true);
         }
     }
 }

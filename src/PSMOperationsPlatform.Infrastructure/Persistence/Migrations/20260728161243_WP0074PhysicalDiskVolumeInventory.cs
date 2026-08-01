@@ -10,17 +10,28 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropIndex(
+                name: "UX_WindowsVolumeInventory_ManagedServer_StableSourceKey",
+                schema: "inventory",
+                table: "WindowsVolumeInventory");
+
             migrationBuilder.RenameColumn(
                 name: "StableSourceKey",
                 schema: "inventory",
                 table: "WindowsVolumeInventory",
                 newName: "VolumeKey");
 
-            migrationBuilder.RenameIndex(
-                name: "UX_WindowsVolumeInventory_ManagedServer_StableSourceKey",
+            migrationBuilder.CreateIndex(
                 schema: "inventory",
                 table: "WindowsVolumeInventory",
-                newName: "UX_WindowsVolumeInventory_ManagedServer_VolumeKey");
+                name: "UX_WindowsVolumeInventory_ManagedServer_VolumeKey",
+                columns: new[] { "ManagedServerId", "VolumeKey" },
+                unique: true);
+
+            migrationBuilder.DropIndex(
+                name: "UX_WindowsDiskInventory_ManagedServer_StableSourceKey",
+                schema: "inventory",
+                table: "WindowsDiskInventory");
 
             migrationBuilder.RenameColumn(
                 name: "StableSourceKey",
@@ -28,27 +39,39 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
                 table: "WindowsDiskInventory",
                 newName: "DiskKey");
 
-            migrationBuilder.RenameIndex(
-                name: "UX_WindowsDiskInventory_ManagedServer_StableSourceKey",
+            migrationBuilder.CreateIndex(
                 schema: "inventory",
                 table: "WindowsDiskInventory",
-                newName: "UX_WindowsDiskInventory_ManagedServer_DiskKey");
+                name: "UX_WindowsDiskInventory_ManagedServer_DiskKey",
+                columns: new[] { "ManagedServerId", "DiskKey" },
+                unique: true);
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropIndex(
+                name: "UX_WindowsVolumeInventory_ManagedServer_VolumeKey",
+                schema: "inventory",
+                table: "WindowsVolumeInventory");
+
             migrationBuilder.RenameColumn(
                 name: "VolumeKey",
                 schema: "inventory",
                 table: "WindowsVolumeInventory",
                 newName: "StableSourceKey");
 
-            migrationBuilder.RenameIndex(
-                name: "UX_WindowsVolumeInventory_ManagedServer_VolumeKey",
+            migrationBuilder.CreateIndex(
                 schema: "inventory",
                 table: "WindowsVolumeInventory",
-                newName: "UX_WindowsVolumeInventory_ManagedServer_StableSourceKey");
+                name: "UX_WindowsVolumeInventory_ManagedServer_StableSourceKey",
+                columns: new[] { "ManagedServerId", "StableSourceKey" },
+                unique: true);
+
+            migrationBuilder.DropIndex(
+                name: "UX_WindowsDiskInventory_ManagedServer_DiskKey",
+                schema: "inventory",
+                table: "WindowsDiskInventory");
 
             migrationBuilder.RenameColumn(
                 name: "DiskKey",
@@ -56,11 +79,12 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
                 table: "WindowsDiskInventory",
                 newName: "StableSourceKey");
 
-            migrationBuilder.RenameIndex(
-                name: "UX_WindowsDiskInventory_ManagedServer_DiskKey",
+            migrationBuilder.CreateIndex(
                 schema: "inventory",
                 table: "WindowsDiskInventory",
-                newName: "UX_WindowsDiskInventory_ManagedServer_StableSourceKey");
+                name: "UX_WindowsDiskInventory_ManagedServer_StableSourceKey",
+                columns: new[] { "ManagedServerId", "StableSourceKey" },
+                unique: true);
         }
     }
 }

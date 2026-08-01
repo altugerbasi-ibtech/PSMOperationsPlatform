@@ -4,6 +4,16 @@ Set-StrictMode -Version Latest
 $script:InfrastructureProject='src\PSMOperationsPlatform.Infrastructure\PSMOperationsPlatform.Infrastructure.csproj'
 $script:StartupProject='src\PSMOperationsPlatform.WindowsCollector\PSMOperationsPlatform.WindowsCollector.csproj'
 $script:DbContext='OperationsDbContext'
+$script:RequiredSqlSessionPreamble=@'
+SET ANSI_NULLS ON;
+SET QUOTED_IDENTIFIER ON;
+SET ANSI_PADDING ON;
+SET ANSI_WARNINGS ON;
+SET ARITHABORT ON;
+SET CONCAT_NULL_YIELDS_NULL ON;
+SET NUMERIC_ROUNDABORT OFF;
+GO
+'@
 
 function Test-PSMOperationsReleaseVersion {
     param([Parameter(Mandatory)][string]$Version)
@@ -41,7 +51,8 @@ function ConvertTo-PSMOperationsDeterministicSql {
     param([Parameter(Mandatory)][string]$Sql)
     $normalized=($Sql -replace "`r`n","`n" -replace "`r","`n").TrimEnd("`n")
     if([string]::IsNullOrWhiteSpace($normalized)){throw 'Generated SQL output is empty.'}
-    ($normalized -replace "`n","`r`n")+"`r`n"
+    $preamble=($script:RequiredSqlSessionPreamble -replace "`r`n","`n" -replace "`r","`n").TrimEnd("`n")
+    (($preamble+"`n"+$normalized) -replace "`n","`r`n")+"`r`n"
 }
 
 function New-PSMOperationsSqlPackageManifest {

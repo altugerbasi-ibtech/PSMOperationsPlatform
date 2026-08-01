@@ -400,6 +400,31 @@ public sealed class MigrationScriptTests
     }
 
     [Fact]
+    public void CompleteIdempotentScriptDropsKeyIndexesBeforeColumnRenamesAndRecreatesFinalIndexes()
+    {
+        using OperationsDbContext context = CreateContext();
+        string script = context.GetService<IMigrator>().GenerateScript(
+            options: MigrationsSqlGenerationOptions.Idempotent);
+
+        Assert.False(string.IsNullOrWhiteSpace(script));
+        Assert.Equal(17, MigrationIds.Length);
+        Assert.Equal("20260729191745_WP0088ExecutionHistory", MigrationIds[^1]);
+        foreach (string migrationId in MigrationIds)
+            Assert.Equal(1, CountOccurrences(script, $"VALUES (N'{migrationId}',"));
+
+        AssertSafeKeyRename(
+            script, "WindowsProcessorInventory", "ProcessorKey");
+        AssertSafeKeyRename(
+            script, "WindowsDiskInventory", "DiskKey");
+        AssertSafeKeyRename(
+            script, "WindowsVolumeInventory", "VolumeKey");
+        AssertSafeKeyRename(
+            script, "WindowsNetworkAdapterInventory", "AdapterKey");
+        AssertSafeKeyRename(
+            script, "WindowsIpv4AddressInventory", "Ipv4Key");
+    }
+
+    [Fact]
     public void WP0083ExecutionPlanMigrationHasCurrentStateConstraintsAndNoRuntimeState()
     {
         using OperationsDbContext context = CreateContext();
@@ -586,6 +611,28 @@ public sealed class MigrationScriptTests
             StringComparison.Ordinal);
         Assert.True(end > start);
         return script[start..end];
+    }
+
+    private static void AssertSafeKeyRename(string script, string table, string finalColumn)
+    {
+        string oldIndex = $"UX_{table}_ManagedServer_StableSourceKey";
+        string finalIndex = $"UX_{table}_ManagedServer_{finalColumn}";
+        string rename = $"sp_rename N'[inventory].[{table}].[StableSourceKey]'";
+
+        int dropPosition = script.IndexOf($"DROP INDEX [{oldIndex}]", StringComparison.Ordinal);
+        int renamePosition = script.IndexOf(rename, StringComparison.Ordinal);
+        int createPosition = script.IndexOf($"CREATE UNIQUE INDEX [{finalIndex}]", StringComparison.Ordinal);
+
+        Assert.True(dropPosition >= 0, $"The dependent index for {table} was not dropped.");
+        Assert.True(renamePosition > dropPosition, $"The {table} column was renamed before its index was dropped.");
+        Assert.True(createPosition > renamePosition, $"The final {table} index was not recreated after the rename.");
+        Assert.Contains(
+            $"ON [inventory].[{table}] ([ManagedServerId], [{finalColumn}])",
+            script[createPosition..],
+            StringComparison.Ordinal);
+        Assert.True(
+            script.LastIndexOf(oldIndex, StringComparison.Ordinal) < renamePosition,
+            $"The obsolete {table} index is referenced after the column rename.");
     }
 
     private static int CountOccurrences(string value, string fragment)

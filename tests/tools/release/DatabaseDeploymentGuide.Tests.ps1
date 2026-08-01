@@ -48,6 +48,11 @@ Describe 'WP-009.2 database deployment guide' {
         $guide|Should Match 'Get-FileHash'
         $guide|Should Match 'dbo\.__EFMigrationsHistory'
     }
+
+    It 'requires sqlcmd quoted identifier mode for deployment' {
+        $guide=Get-Content -Raw -LiteralPath $guidePath
+        $guide|Should Match '(?s)sqlcmd -S.+?-E -I -b -V 16'
+    }
 }
 
 Describe 'WP-009.2 validation queries' {

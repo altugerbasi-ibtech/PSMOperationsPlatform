@@ -188,7 +188,7 @@ Example invocation placeholders:
 ```powershell
 sqlcmd -S '<APPROVED-SQL-SERVER>' `
   -d '<APPROVED-DATABASE>' `
-  -E -b -V 16 `
+  -E -I -b -V 16 `
   -i '.\Release\Database\PSMOperations-v<APPROVED-VERSION>.sql' `
   -o '<APPROVED-EVIDENCE-PATH>\DatabaseDeployment.txt'
 ```

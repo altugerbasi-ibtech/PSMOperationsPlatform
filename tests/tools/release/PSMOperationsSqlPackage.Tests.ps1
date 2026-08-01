@@ -77,7 +77,29 @@ Describe 'WP-009.1 SQL release package' {
     }
 
     It 'normalizes SQL to CRLF with one terminal newline' {
-        (ConvertTo-PSMOperationsDeterministicSql "SELECT 1;`nGO`n`n")|Should Be "SELECT 1;`r`nGO`r`n"
+        $sql=ConvertTo-PSMOperationsDeterministicSql "SELECT 1;`nGO`n`n"
+        $sql|Should Match '^SET ANSI_NULLS ON;\r\nSET QUOTED_IDENTIFIER ON;'
+        $sql|Should Match 'SET ANSI_PADDING ON;\r\nSET ANSI_WARNINGS ON;'
+        $sql|Should Match 'SET ARITHABORT ON;\r\nSET CONCAT_NULL_YIELDS_NULL ON;'
+        $sql|Should Match 'SET NUMERIC_ROUNDABORT OFF;\r\nGO\r\nSELECT 1;\r\nGO\r\n$'
+    }
+
+    It 'adds every required indexed-object SET option before generated migration SQL' {
+        $fixture=New-SqlPackageFixture
+        $result=Invoke-PSMOperationsSqlPackageBuild '1.2.3' $fixture.Root $fixture.Output `
+            (New-SqlPackageOperations $fixture)
+        $sql=Get-Content -Raw -LiteralPath $result.SqlPath
+        $required=@(
+            'SET ANSI_NULLS ON;',
+            'SET QUOTED_IDENTIFIER ON;',
+            'SET ANSI_PADDING ON;',
+            'SET ANSI_WARNINGS ON;',
+            'SET ARITHABORT ON;',
+            'SET CONCAT_NULL_YIELDS_NULL ON;',
+            'SET NUMERIC_ROUNDABORT OFF;'
+        )
+        foreach($setting in $required){$sql|Should Match ([regex]::Escape($setting))}
+        $sql.IndexOf('SET ANSI_NULLS ON;')|Should BeLessThan $sql.IndexOf('SELECT 1;')
     }
 
     It 'creates SQL checksum and manifest without environment data' {

@@ -60,7 +60,7 @@ Supply approved database-user names and capture the output:
 ```powershell
 sqlcmd -S '<APPROVED-SQL-SERVER>' `
   -d '<APPROVED-DATABASE>' `
-  -E -b -V 16 `
+  -E -I -b -V 16 `
   -v CollectorPrincipal='<APPROVED-COLLECTOR-DATABASE-USER>' `
      PortalPrincipal='<APPROVED-PORTAL-DATABASE-USER>' `
      SqlCollectorPrincipal='<APPROVED-SQL-COLLECTOR-DATABASE-USER>' `

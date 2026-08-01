@@ -10,17 +10,23 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropIndex(
+                name: "UX_WindowsProcessorInventory_ManagedServer_StableSourceKey",
+                schema: "inventory",
+                table: "WindowsProcessorInventory");
+
             migrationBuilder.RenameColumn(
                 name: "StableSourceKey",
                 schema: "inventory",
                 table: "WindowsProcessorInventory",
                 newName: "ProcessorKey");
 
-            migrationBuilder.RenameIndex(
-                name: "UX_WindowsProcessorInventory_ManagedServer_StableSourceKey",
+            migrationBuilder.CreateIndex(
                 schema: "inventory",
                 table: "WindowsProcessorInventory",
-                newName: "UX_WindowsProcessorInventory_ManagedServer_ProcessorKey");
+                name: "UX_WindowsProcessorInventory_ManagedServer_ProcessorKey",
+                columns: new[] { "ManagedServerId", "ProcessorKey" },
+                unique: true);
 
             migrationBuilder.AddColumn<int>(
                 name: "AddressWidth",
@@ -176,17 +182,23 @@ namespace PSMOperationsPlatform.Infrastructure.Persistence.Migrations
                 schema: "inventory",
                 table: "WindowsProcessorInventory");
 
+            migrationBuilder.DropIndex(
+                name: "UX_WindowsProcessorInventory_ManagedServer_ProcessorKey",
+                schema: "inventory",
+                table: "WindowsProcessorInventory");
+
             migrationBuilder.RenameColumn(
                 name: "ProcessorKey",
                 schema: "inventory",
                 table: "WindowsProcessorInventory",
                 newName: "StableSourceKey");
 
-            migrationBuilder.RenameIndex(
-                name: "UX_WindowsProcessorInventory_ManagedServer_ProcessorKey",
+            migrationBuilder.CreateIndex(
                 schema: "inventory",
                 table: "WindowsProcessorInventory",
-                newName: "UX_WindowsProcessorInventory_ManagedServer_StableSourceKey");
+                name: "UX_WindowsProcessorInventory_ManagedServer_StableSourceKey",
+                columns: new[] { "ManagedServerId", "StableSourceKey" },
+                unique: true);
         }
     }
 }

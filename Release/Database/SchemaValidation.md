@@ -46,7 +46,7 @@ Use approved environment values and capture the output as release evidence:
 ```powershell
 sqlcmd -S '<APPROVED-SQL-SERVER>' `
   -d '<APPROVED-DATABASE>' `
-  -E -b -V 16 `
+  -E -I -b -V 16 `
   -v ExpectedDatabaseName='<APPROVED-DATABASE>' `
      ExpectedCompatibilityLevel='160' `
      ExpectedCollation='<APPROVED-COLLATION>' `
